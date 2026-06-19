@@ -1,0 +1,16 @@
+---
+name: overdue
+services:
+  overdue:
+    container_name: overdue
+    image: ghcr.io/containeroo/overdue:latest
+    restart: unless-stopped
+    ports:
+      - "${OVERDUE_HTTP_PORT:-8080}:8080"
+    environment:
+      OVERDUE__EXPECTED_EVERY: 1m
+      OVERDUE__ALERTING_DELAY: 10s
+      OVERDUE__AUTH_TOKEN: "${OVERDUE__AUTH_TOKEN:-}"
+    env_file:
+      - path: ./.env.sample
+        required: false

@@ -1,0 +1,36 @@
+{{/* Slack incoming webhook payload */}}
+{
+  "charset": "utf-8",
+  "text": {{ json .Title }},
+  "attachments": [
+    {
+      "color": {{ if .Resolved }}{{ json "good" }}{{ else }}{{ json "#A30200" }}{{ end }},
+      "fallback": {{ json (print
+        .Title " "
+        .Text " "
+        "Status: " .Status ". "
+        "Expected every " (.ExpectedBy.Sub .LastCheckIn) ", "
+        "alerting delay " (.AlertingAt.Sub .ExpectedBy) ", "
+        "alerting at " (.AlertingAt.Format "2006-01-02T15:04:05Z07:00") "."
+      ) }},
+      "mrkdwn_in": ["text"],
+      "text": {{ json (print
+        .Text "\n\n"
+
+        "*Schedule*\n"
+        "• Check-in: `" .CheckInName "`\n"
+        "• Expected every: `" (.ExpectedBy.Sub .LastCheckIn) "`\n"
+        "• Alerting delay: `" (.AlertingAt.Sub .ExpectedBy) "`\n"
+        "• Alerting after: `" (.AlertingAt.Sub .LastCheckIn) "`\n\n"
+
+        "*Timeline*\n"
+        "• Last check-in: `" (.LastCheckIn.Format "2006-01-02 15:04:05 MST") "`\n"
+        "• Expected by: `" (.ExpectedBy.Format "2006-01-02 15:04:05 MST") "`\n"
+        "• Alerting at: `" (.AlertingAt.Format "2006-01-02 15:04:05 MST") "`\n"
+        "• " (when .Resolved "Resolved at" "Notified at") ": `" (.Now.Format "2006-01-02 15:04:05 MST") "`\n\n"
+
+        "*Status:* `" .Status "`"
+      ) }}
+    }
+  ]
+}

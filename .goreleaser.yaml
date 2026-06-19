@@ -1,0 +1,72 @@
+---
+project_name: overdue
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - id: overdue
+    main: ./main.go
+    binary: overdue
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w
+      - -X main.Version={{ .Tag }}
+      - -X main.Commit={{ .FullCommit }}
+dockers:
+  - ids: [overdue] # tie this docker image to the 'overdue' build
+    use: buildx
+    dockerfile: Dockerfile.goreleaser
+    extra_files:
+      - go.mod
+      - go.sum
+      - main.go
+      - internal/
+      - templates/
+    image_templates:
+      - ghcr.io/containeroo/overdue:{{ .Tag }}-amd64
+    build_flag_templates:
+      - --pull
+      - --platform=linux/amd64
+      - --label=org.opencontainers.image.title={{ .ProjectName }}
+      - --label=org.opencontainers.image.description={{ .ProjectName }}
+      - --label=org.opencontainers.image.url=https://github.com/containeroo/overdue
+      - --label=org.opencontainers.image.source=https://github.com/containeroo/overdue
+      - --label=org.opencontainers.image.version={{ .Version }}
+      - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
+      - --label=org.opencontainers.image.revision={{ .FullCommit }}
+      - --label=org.opencontainers.image.licenses="GNU General Public License v3.0"
+
+  - ids: [overdue]
+    use: buildx
+    dockerfile: Dockerfile.goreleaser
+    extra_files:
+      - go.mod
+      - go.sum
+      - main.go
+      - internal/
+      - templates/
+    image_templates:
+      - ghcr.io/containeroo/overdue:{{ .Tag }}-arm64
+    build_flag_templates:
+      - --pull
+      - --platform=linux/arm64
+      - --label=org.opencontainers.image.title={{ .ProjectName }}
+      - --label=org.opencontainers.image.description={{ .ProjectName }}
+      - --label=org.opencontainers.image.url=https://github.com/containeroo/overdue
+      - --label=org.opencontainers.image.source=https://github.com/containeroo/overdue
+      - --label=org.opencontainers.image.version={{ .Version }}
+      - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
+      - --label=org.opencontainers.image.revision={{ .FullCommit }}
+      - --label=org.opencontainers.image.licenses="GNU General Public License v3.0"
+
+docker_manifests:
+  - name_template: ghcr.io/containeroo/overdue:{{ .Tag }}
+    image_templates:
+      - ghcr.io/containeroo/overdue:{{ .Tag }}-amd64
+      - ghcr.io/containeroo/overdue:{{ .Tag }}-arm64
+  - name_template: ghcr.io/containeroo/overdue:latest
+    image_templates:
+      - ghcr.io/containeroo/overdue:{{ .Tag }}-amd64
+      - ghcr.io/containeroo/overdue:{{ .Tag }}-arm64

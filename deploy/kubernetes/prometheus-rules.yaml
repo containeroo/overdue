@@ -1,0 +1,49 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: overdue-prometheus-watchdog
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: overdue-prometheus-watchdog
+    app.kubernetes.io/component: alert-rules
+    # Add the label used by your Prometheus rule selector if needed.
+    # release: kube-prometheus-stack
+spec:
+  groups:
+    - name: overdue.rules
+      rules:
+        - alert: OverdueMonitorMetricsAbsent
+          expr: absent(overdue_monitor_phase)
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Overdue monitor metrics are absent"
+            description: "Prometheus is not receiving overdue_monitor_phase metrics. The Overdue instance may be down, unreachable, or not scraped."
+
+        - alert: OverdueCheckInOverdue
+          expr: overdue_monitor_phase{phase="overdue"} == 1
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Check-in {{ $labels.check_in }} is overdue"
+            description: "The expected check-in deadline elapsed, but the alerting delay has not elapsed yet."
+
+        - alert: OverdueCheckInAlerting
+          expr: overdue_monitor_phase{phase="alerting"} == 1
+          labels:
+            severity: critical
+          annotations:
+            summary: "Check-in {{ $labels.check_in }} is alerting"
+            description: "The expected check-in deadline and alerting delay elapsed. Overdue has entered the alerting phase."
+
+        - alert: OverdueNotificationDeliveryFailing
+          expr: overdue_notification_last_status == 1
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Overdue notification target {{ $labels.type }}/{{ $labels.target }} is failing"
+            description: "The latest notification attempt for this target failed or is still pending."

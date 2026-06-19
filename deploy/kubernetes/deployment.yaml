@@ -1,0 +1,67 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: overdue-prometheus-watchdog
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: overdue
+      app.kubernetes.io/instance: prometheus-watchdog
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: overdue
+        app.kubernetes.io/instance: prometheus-watchdog
+    spec:
+      containers:
+        - name: overdue
+          image: ghcr.io/containeroo/overdue:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: OVERDUE__CHECK_IN_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['app.kubernetes.io/instance']
+            - name: OVERDUE__EXPECTED_EVERY
+              value: "15m"
+            - name: OVERDUE__ALERTING_DELAY
+              value: "5m"
+            - name: OVERDUE__LOG_FORMAT
+              value: json
+            - name: OVERDUE__WEBHOOK_OPS_TEMPLATE
+              value: builtin:slack-incoming-webhook
+            - name: OVERDUE__WEBHOOK_OPS_SEND_RESOLVED
+              value: "true"
+            - name: OVERDUE__WEBHOOK_OPS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: overdue-notifications
+                  key: OVERDUE__WEBHOOK_OPS_URL
+            - name: OVERDUE__EMAIL_OPS_SMTP_HOST
+              value: smtp.example.com
+            - name: OVERDUE__EMAIL_OPS_SMTP_PORT
+              value: "587"
+            - name: OVERDUE__EMAIL_OPS_SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: overdue-notifications
+                  key: OVERDUE__EMAIL_OPS_SMTP_USER
+            - name: OVERDUE__EMAIL_OPS_SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: overdue-notifications
+                  key: OVERDUE__EMAIL_OPS_SMTP_PASS
+            - name: OVERDUE__EMAIL_OPS_FROM
+              value: overdue@example.com
+            - name: OVERDUE__EMAIL_OPS_TO
+              value: ops@example.com
+            - name: OVERDUE__EMAIL_OPS_TEMPLATE
+              value: builtin:email-html
+            - name: OVERDUE__EMAIL_OPS_SEND_RESOLVED
+              value: "true"
