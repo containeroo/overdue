@@ -1,5 +1,6 @@
 ---
 name: overdue
+
 services:
   overdue:
     container_name: overdue
@@ -11,6 +12,40 @@ services:
       OVERDUE__EXPECTED_EVERY: 1m
       OVERDUE__ALERTING_DELAY: 10s
       OVERDUE__AUTH_TOKEN: "${OVERDUE__AUTH_TOKEN:-}"
+
+      # Optional route prefix used when overdue is served below a sub-path.
+      # For example, with /watchdog the status endpoint becomes:
+      # https://overdue.example/watchdog/status
+      #
+      # This value must match the Traefik PathPrefix below.
+      # OVERDUE__ROUTE_PREFIX: /watchdog
+
     env_file:
       - path: ./.env.sample
         required: false
+
+    # Optional Traefik configuration.
+    #
+    # These labels expose overdue through Traefik on the same base domain but
+    # below a path prefix. Traefik only forwards requests matching /watchdog
+    # to this container.
+    #
+    # When enabling this block, also enable OVERDUE__ROUTE_PREFIX=/watchdog
+    # above, so overdue registers its own routes below the same prefix.
+    #
+    # Resulting example URLs:
+    #   https://overdue.example/watchdog/status
+    #   https://overdue.example/watchdog/checkin
+    #
+    # If you run multiple overdue containers on the same domain, each container
+    # needs unique Traefik router and service names, for example:
+    #   overdue-watchdog
+    #   overdue-cloudflare
+    #
+    # labels:
+    #   "traefik.enable": "true"
+    #   "traefik.docker.network": "overdue"
+    #   "traefik.http.routers.overdue-watchdog.entrypoints": "https"
+    #   "traefik.http.routers.overdue-watchdog.rule": "Host(`overdue.example`) && PathPrefix(`/watchdog`)"
+    #   "traefik.http.routers.overdue-watchdog.service": "overdue-watchdog"
+    #   "traefik.http.services.overdue-watchdog.loadbalancer.server.port": "8080"
