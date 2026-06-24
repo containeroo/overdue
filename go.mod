@@ -9,6 +9,7 @@ require (
 	github.com/containeroo/httpprefix v0.0.2
 	github.com/containeroo/httputils v0.0.1
 	github.com/containeroo/tinyflags v0.0.79
+	github.com/containeroo/tmplfuncs v0.0.0-20260624142406-968d5442fbec
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
 )

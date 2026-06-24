@@ -2,12 +2,12 @@ package render
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/containeroo/tmplfuncs"
 )
 
 // ParseInlineTemplate parses a single inline template value.
@@ -30,107 +30,10 @@ func ExecuteInlineTemplate(tmpl *template.Template, data any) (text string, err 
 
 // templateFuncs returns template helper functions.
 func templateFuncs() template.FuncMap {
-	return template.FuncMap{
-		"ago":        agoTemplateValue,
-		"default":    defaultTemplateValue,
-		"duration":   durationTemplateValue,
-		"json":       jsonTemplateValue,
-		"lower":      lowerTemplateValue,
-		"optional":   optionalTemplateValue,
-		"trim":       trimTemplateValue,
-		"upper":      upperTemplateValue,
-		"when":       conditionalString,
-		"withPrefix": withPrefix,
-		"withSuffix": withSuffix,
-	}
-}
+	funcs := tmplfuncs.FuncMap()
+	funcs["ago"] = agoTemplateValue
 
-// conditionalString returns trueValue when condition is true and falseValue otherwise.
-//
-// The argument order favors natural inline conditional usage:
-//
-//	{{ when .Resolved "Resolved at" "Notified at" }}
-func conditionalString(condition bool, trueValue, falseValue string) string {
-	if condition {
-		return trueValue
-	}
-	return falseValue
-}
-
-// defaultTemplateValue returns fallback when value is empty or the zero value.
-//
-// The argument order matches common template usage:
-//
-//	{{ default "fallback" .Value }}
-//	{{ .Value | default "fallback" }}
-func defaultTemplateValue(fallback, value any) any {
-	if isZeroTemplateValue(value) {
-		return fallback
-	}
-	return value
-}
-
-// optionalTemplateValue returns formatted text when value is not empty.
-//
-// The argument order supports both direct and pipeline usage:
-//
-//	{{ optional "Status URL: %s" .App.StatusURL }}
-//	{{ .App.StatusURL | optional "Status URL: %s" }}
-func optionalTemplateValue(format string, value any) string {
-	if isZeroTemplateValue(value) {
-		return ""
-	}
-
-	text := strings.TrimSpace(templateString(value))
-	if text == "" {
-		return ""
-	}
-
-	return fmt.Sprintf(format, text)
-}
-
-// isZeroTemplateValue reports whether value should use a template fallback.
-func isZeroTemplateValue(value any) bool {
-	if value == nil {
-		return true
-	}
-
-	v := reflect.ValueOf(value)
-	if !v.IsValid() {
-		return true
-	}
-
-	switch v.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
-		if v.IsNil() {
-			return true
-		}
-	}
-
-	return v.IsZero()
-}
-
-// trimTemplateValue returns value as a string with surrounding whitespace removed.
-func trimTemplateValue(value any) string {
-	return strings.TrimSpace(templateString(value))
-}
-
-// upperTemplateValue returns value as an uppercase string.
-func upperTemplateValue(value any) string {
-	return strings.ToUpper(templateString(value))
-}
-
-// lowerTemplateValue returns value as a lowercase string.
-func lowerTemplateValue(value any) string {
-	return strings.ToLower(templateString(value))
-}
-
-// templateString converts a template value to a string.
-func templateString(value any) string {
-	if value == nil {
-		return ""
-	}
-	return fmt.Sprint(value)
+	return funcs
 }
 
 // agoTemplateValue renders the distance between value and now.
@@ -145,15 +48,6 @@ func agoTemplateValue(value any) (string, error) {
 		return "in " + formatApproxDuration(-d), nil
 	}
 	return formatApproxDuration(d) + " ago", nil
-}
-
-// durationTemplateValue renders a duration value as a Go duration string.
-func durationTemplateValue(value any) (string, error) {
-	d, err := templateDuration(value)
-	if err != nil {
-		return "", err
-	}
-	return d.String(), nil
 }
 
 // templateTime converts a template value to time.Time.
@@ -177,27 +71,6 @@ func templateTime(value any) (time.Time, error) {
 	}
 }
 
-// templateDuration converts a template value to time.Duration.
-func templateDuration(value any) (time.Duration, error) {
-	switch v := value.(type) {
-	case time.Duration:
-		return v, nil
-	case *time.Duration:
-		if v == nil {
-			return 0, fmt.Errorf("duration value must not be nil")
-		}
-		return *v, nil
-	case string:
-		d, err := time.ParseDuration(strings.TrimSpace(v))
-		if err != nil {
-			return 0, fmt.Errorf("parse duration %q: %w", v, err)
-		}
-		return d, nil
-	default:
-		return 0, fmt.Errorf("duration value must be time.Duration or duration string, got %T", value)
-	}
-}
-
 // formatApproxDuration renders duration with useful precision for relative times.
 func formatApproxDuration(d time.Duration) string {
 	if d < 0 {
@@ -214,55 +87,4 @@ func formatApproxDuration(d time.Duration) string {
 	default:
 		return d.String()
 	}
-}
-
-// jsonTemplateValue renders any template value as a JSON literal.
-func jsonTemplateValue(value any) (literal string, err error) {
-	body, err := json.Marshal(value)
-	if err != nil {
-		return "", err
-	}
-	return string(body), nil
-}
-
-// withPrefix returns value with prefix prepended when it is not already present.
-//
-// The argument order supports both direct and pipeline usage:
-//
-//	{{ withPrefix "#" .CustomData.channel }}
-//	{{ .CustomData.channel | withPrefix "#" }}
-func withPrefix(prefix string, value any) string {
-	if value == nil {
-		return ""
-	}
-
-	text := strings.TrimSpace(fmt.Sprint(value))
-	prefix = strings.TrimSpace(prefix)
-
-	if text == "" || prefix == "" || strings.HasPrefix(text, prefix) {
-		return text
-	}
-
-	return prefix + text
-}
-
-// withSuffix returns value with suffix appended when it is not already present.
-//
-// The argument order supports both direct and pipeline usage:
-//
-//	{{ withSuffix "/" .CustomData.path }}
-//	{{ .CustomData.path | withSuffix "/" }}
-func withSuffix(suffix string, value any) string {
-	if value == nil {
-		return ""
-	}
-
-	text := strings.TrimSpace(fmt.Sprint(value))
-	suffix = strings.TrimSpace(suffix)
-
-	if text == "" || suffix == "" || strings.HasSuffix(text, suffix) {
-		return text
-	}
-
-	return text + suffix
 }
