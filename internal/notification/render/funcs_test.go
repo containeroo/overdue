@@ -16,7 +16,7 @@ func TestParseInlineTemplate(t *testing.T) {
 	t.Run("parses helpers", func(t *testing.T) {
 		t.Parallel()
 
-		tmpl, err := ParseInlineTemplate("subject", `{{ upper (trim .CheckInName) }} {{ .Resolved | when "up" "down" }}`)
+		tmpl, err := ParseInlineTemplate("subject", `{{ upper (trim .CheckInName) }} {{ when .Resolved "up" "down" }}`)
 		require.NoError(t, err)
 
 		got, err := ExecuteInlineTemplate(tmpl, monitor.Event{CheckInName: " prometheus "})
@@ -94,7 +94,7 @@ func TestTemplatePipelines(t *testing.T) {
 
 		tmpl, err := ParseInlineTemplate(
 			"pipeline",
-			`{{ .Channel | default "#alertmanager" | withPrefix "#" }} {{ .Resolved | when "up" "down" }}`,
+			`{{ .Channel | default "#alertmanager" | withPrefix "#" }} {{ when .Resolved "up" "down" }}`,
 		)
 		require.NoError(t, err)
 
@@ -114,13 +114,13 @@ func TestConditionalString(t *testing.T) {
 	t.Run("selects true value", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, "yes", conditionalString("yes", "no", true))
+		assert.Equal(t, "yes", conditionalString(true, "yes", "no"))
 	})
 
 	t.Run("selects false value", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, "no", conditionalString("yes", "no", false))
+		assert.Equal(t, "no", conditionalString(false, "yes", "no"))
 	})
 }
 

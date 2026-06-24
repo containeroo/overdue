@@ -46,11 +46,10 @@ func templateFuncs() template.FuncMap {
 
 // conditionalString returns trueValue when condition is true and falseValue otherwise.
 //
-// The argument order supports both direct and pipeline usage:
+// The argument order favors natural inline conditional usage:
 //
-//	{{ when "Resolved at" "Notified at" .Resolved }}
-//	{{ .Resolved | when "Resolved at" "Notified at" }}
-func conditionalString(trueValue, falseValue string, condition bool) string {
+//	{{ when .Resolved "Resolved at" "Notified at" }}
+func conditionalString(condition bool, trueValue, falseValue string) string {
 	if condition {
 		return trueValue
 	}

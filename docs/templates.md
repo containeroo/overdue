@@ -83,18 +83,18 @@ Alerting at: {{ .AlertingAt.Format "2006-01-02 15:04:05 MST" }}
 
 Overdue templates use Go `text/template` and include these helper functions:
 
-| Function     | Description                                  | Example                                                                  |
-| ------------ | -------------------------------------------- | ------------------------------------------------------------------------ |
-| `json`       | Render a value as a JSON literal.            | `{{ .Text \| json }}`                                                    |
-| `when`       | Inline conditional string selection.         | `{{ .Resolved \| when "Resolved at" "Notified at" }}`                    |
-| `default`    | Return fallback when value is empty or zero. | `{{ .CheckInName \| default "unknown" }}`                                |
-| `trim`       | Trim surrounding whitespace.                 | `{{ .CheckInName \| trim }}`                                             |
-| `upper`      | Convert value to uppercase.                  | `{{ .Status \| upper }}`                                                 |
-| `lower`      | Convert value to lowercase.                  | `{{ .Status \| lower }}`                                                 |
-| `ago`        | Render relative time from now.               | `{{ .LastCheckIn \| ago }}`                                              |
-| `duration`   | Render a duration value.                     | `{{ .AlertingAt.Sub .ExpectedBy \| duration }}`                          |
-| `withPrefix` | Prepend a prefix when it is not present.     | `{{ .CustomData.channel \| default "#alertmanager" \| withPrefix "#" }}` |
-| `withSuffix` | Append a suffix when it is not present.      | `{{ .CustomData.path \| withSuffix "/" }}`                               |
+| Function     | Description                                  | Example                                                                 |
+| ------------ | -------------------------------------------- | ----------------------------------------------------------------------- |
+| `json`       | Render a value as a JSON literal.            | `{{ .Text \| json }}`                                                   |
+| `when`       | Inline conditional string selection.         | `{{ when .Resolved "Resolved at" "Notified at" }}`                      |
+| `default`    | Return fallback when value is empty or zero. | `{{ .CheckInName \| default "unknown" }}`                               |
+| `trim`       | Trim surrounding whitespace.                 | `{{ .CheckInName \| trim }}`                                            |
+| `upper`      | Convert value to uppercase.                  | `{{ .Status \| upper }}`                                                |
+| `lower`      | Convert value to lowercase.                  | `{{ .Status \| lower }}`                                                |
+| `ago`        | Render relative time from now.               | `{{ .LastCheckIn \| ago }}`                                             |
+| `duration`   | Render a duration value.                     | `{{ .AlertingAt.Sub .ExpectedBy \| duration }}`                         |
+| `withPrefix` | Prepend a prefix when it is not present.     | `{{ .CustomData.channel \| default "alertmanager" \| withPrefix "#" }}` |
+| `withSuffix` | Append a suffix when it is not present.      | `{{ .CustomData.path \| withSuffix "/" }}`                              |
 
 The helpers can also be called without pipelines:
 
@@ -119,7 +119,7 @@ Overdue
 Use `when` for inline string choices:
 
 ```gotemplate
-{{ .Resolved | when "Resolved at" "Notified at" }}
+{{ when .Resolved "Resolved at" "Notified at" }}
 ```
 
 For JSON webhook templates, wrap dynamic strings with `json`:
