@@ -36,6 +36,7 @@ func templateFuncs() template.FuncMap {
 		"duration":   durationTemplateValue,
 		"json":       jsonTemplateValue,
 		"lower":      lowerTemplateValue,
+		"optional":   optionalTemplateValue,
 		"trim":       trimTemplateValue,
 		"upper":      upperTemplateValue,
 		"when":       conditionalString,
@@ -67,6 +68,25 @@ func defaultTemplateValue(fallback, value any) any {
 		return fallback
 	}
 	return value
+}
+
+// optionalTemplateValue returns formatted text when value is not empty.
+//
+// The argument order supports both direct and pipeline usage:
+//
+//	{{ optional "Status URL: %s" .App.StatusURL }}
+//	{{ .App.StatusURL | optional "Status URL: %s" }}
+func optionalTemplateValue(format string, value any) string {
+	if isZeroTemplateValue(value) {
+		return ""
+	}
+
+	text := strings.TrimSpace(templateString(value))
+	if text == "" {
+		return ""
+	}
+
+	return fmt.Sprintf(format, text)
 }
 
 // isZeroTemplateValue reports whether value should use a template fallback.

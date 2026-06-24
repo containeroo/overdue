@@ -27,6 +27,8 @@ Use a built-in template:
 
 The built-in Slack templates render their channel from `.CustomData.channel` and default to `#alertmanager` when no channel is configured.
 
+The built-in Slack and HTML email templates include a status URL only when `--public-url` is configured.
+
 ```sh
 --webhook.ops.custom-data=channel=#ops
 ```
@@ -79,8 +81,7 @@ Check-in: {{ .CheckInName }}
 Version: {{ .App.Version }}
 Status: {{ .Status }}
 Channel: {{ .CustomData.channel | default "alertmanager" | withPrefix "#" }}
-Status URL: {{ .App.StatusURL }}
-Expected by: {{ .ExpectedBy.Format "2006-01-02 15:04:05 MST" }}
+{{ optional "Status URL: %s\n" .App.StatusURL }}Expected by: {{ .ExpectedBy.Format "2006-01-02 15:04:05 MST" }}
 Alerting at: {{ .AlertingAt.Format "2006-01-02 15:04:05 MST" }}
 ```
 
@@ -88,18 +89,19 @@ Alerting at: {{ .AlertingAt.Format "2006-01-02 15:04:05 MST" }}
 
 Overdue templates use Go `text/template` and include these helper functions:
 
-| Function     | Description                                  | Example                                                                 |
-| ------------ | -------------------------------------------- | ----------------------------------------------------------------------- |
-| `json`       | Render a value as a JSON literal.            | `{{ .Text \| json }}`                                                   |
-| `when`       | Inline conditional string selection.         | `{{ when .Resolved "Resolved at" "Notified at" }}`                      |
-| `default`    | Return fallback when value is empty or zero. | `{{ .CheckInName \| default "unknown" }}`                               |
-| `trim`       | Trim surrounding whitespace.                 | `{{ .CheckInName \| trim }}`                                            |
-| `upper`      | Convert value to uppercase.                  | `{{ .Status \| upper }}`                                                |
-| `lower`      | Convert value to lowercase.                  | `{{ .Status \| lower }}`                                                |
-| `ago`        | Render relative time from now.               | `{{ .LastCheckIn \| ago }}`                                             |
-| `duration`   | Render a duration value.                     | `{{ .AlertingAt.Sub .ExpectedBy \| duration }}`                         |
-| `withPrefix` | Prepend a prefix when it is not present.     | `{{ .CustomData.channel \| default "alertmanager" \| withPrefix "#" }}` |
-| `withSuffix` | Append a suffix when it is not present.      | `{{ .CustomData.path \| withSuffix "/" }}`                              |
+| Function     | Description                                   | Example                                                                 |
+| ------------ | --------------------------------------------- | ----------------------------------------------------------------------- |
+| `json`       | Render a value as a JSON literal.             | `{{ .Text \| json }}`                                                   |
+| `when`       | Inline conditional string selection.          | `{{ when .Resolved "Resolved at" "Notified at" }}`                      |
+| `default`    | Return fallback when value is empty or zero.  | `{{ .CheckInName \| default "unknown" }}`                               |
+| `trim`       | Trim surrounding whitespace.                  | `{{ .CheckInName \| trim }}`                                            |
+| `upper`      | Convert value to uppercase.                   | `{{ .Status \| upper }}`                                                |
+| `lower`      | Convert value to lowercase.                   | `{{ .Status \| lower }}`                                                |
+| `optional`   | Render formatted text only when value is set. | `{{ .App.StatusURL \| optional "Status URL: %s" }}`                     |
+| `ago`        | Render relative time from now.                | `{{ .LastCheckIn \| ago }}`                                             |
+| `duration`   | Render a duration value.                      | `{{ .AlertingAt.Sub .ExpectedBy \| duration }}`                         |
+| `withPrefix` | Prepend a prefix when it is not present.      | `{{ .CustomData.channel \| default "alertmanager" \| withPrefix "#" }}` |
+| `withSuffix` | Append a suffix when it is not present.       | `{{ .CustomData.path \| withSuffix "/" }}`                              |
 
 The helpers can also be called without pipelines:
 
@@ -107,6 +109,7 @@ The helpers can also be called without pipelines:
 {{ json .Text }}
 {{ when .Resolved "Resolved at" "Notified at" }}
 {{ default "unknown" .CheckInName }}
+{{ optional "Status URL: %s" .App.StatusURL }}
 {{ withPrefix "#" .CustomData.channel }}
 {{ withSuffix "/" .CustomData.path }}
 ```
@@ -127,6 +130,13 @@ Use `when` for inline string choices:
 {{ when .Resolved "Resolved at" "Notified at" }}
 ```
 
+Use `optional` when a label, line, or suffix should appear only when a value is set:
+
+```gotemplate
+{{ optional "Status URL: %s" .App.StatusURL }}
+{{ .App.StatusURL | optional "\n\n*Status URL:* %s" }}
+```
+
 For JSON webhook templates, wrap dynamic strings with `json`:
 
 ```gotemplate
@@ -136,14 +146,11 @@ For JSON webhook templates, wrap dynamic strings with `json`:
 }
 ```
 
-For Slack channel rendering, combine `default`, `withPrefix`, and `json`:
+For Slack channel rendering, combine `default`, `withPrefix`, `optional`, and `json`:
 
 ```gotemplate
 {
   "channel": {{ .CustomData.channel | default "alertmanager" | withPrefix "#" | json }},
-  "text": {{ .Text | json }},
-  "status_url": {{ .App.StatusURL | json }}
+  "text": {{ print .Text (.App.StatusURL | optional "\n\nStatus URL: %s") | json }}
 }
 ```
-
-

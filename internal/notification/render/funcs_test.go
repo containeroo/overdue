@@ -75,6 +75,7 @@ func TestTemplateFuncs(t *testing.T) {
 			"duration",
 			"json",
 			"lower",
+			"optional",
 			"trim",
 			"upper",
 			"when",
@@ -94,17 +95,18 @@ func TestTemplatePipelines(t *testing.T) {
 
 		tmpl, err := ParseInlineTemplate(
 			"pipeline",
-			`{{ .Channel | default "#alertmanager" | withPrefix "#" }} {{ when .Resolved "up" "down" }}`,
+			`{{ .Channel | default "#alertmanager" | withPrefix "#" }} {{ when .Resolved "up" "down" }}{{ .StatusURL | optional " %s" }}`,
 		)
 		require.NoError(t, err)
 
 		got, err := ExecuteInlineTemplate(tmpl, map[string]any{
-			"Channel":  "alerts",
-			"Resolved": true,
+			"Channel":   "alerts",
+			"Resolved":  true,
+			"StatusURL": "https://overdue.example.test/status",
 		})
 
 		require.NoError(t, err)
-		assert.Equal(t, "#alerts up", got)
+		assert.Equal(t, "#alerts up https://overdue.example.test/status", got)
 	})
 }
 
@@ -142,6 +144,23 @@ func TestDefaultTemplateValue(t *testing.T) {
 		assert.Equal(t, "value", defaultTemplateValue("fallback", "value"))
 		assert.Equal(t, 42, defaultTemplateValue("fallback", 42))
 		assert.Equal(t, true, defaultTemplateValue("fallback", true))
+	})
+}
+
+func TestOptionalTemplateValue(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns formatted value for non empty value", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "Status URL: https://overdue.example.test/status", optionalTemplateValue("Status URL: %s", " https://overdue.example.test/status "))
+	})
+
+	t.Run("returns empty for zero values", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Empty(t, optionalTemplateValue("Status URL: %s", ""))
+		assert.Empty(t, optionalTemplateValue("Status URL: %s", nil))
 	})
 }
 

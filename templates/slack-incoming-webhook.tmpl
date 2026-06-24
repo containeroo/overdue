@@ -5,7 +5,7 @@
   "text": {{ .Title | json }},
   "attachments": [
     {
-      "color": {{ if .Resolved }}{{ "good" | json }}{{ else }}{{ "#A30200" | json }}{{ end }},
+      "color": {{ when .Resolved "good" "#A30200" | json }},
       "fallback": {{ print
         .Title " "
         .Text " "
@@ -13,6 +13,7 @@
         "Expected every " (.ExpectedBy.Sub .LastCheckIn) ", "
         "alerting delay " (.AlertingAt.Sub .ExpectedBy) ", "
         "alerting at " (.AlertingAt.Format "2006-01-02T15:04:05Z07:00") "."
+        (optional " Status URL: %s." .App.StatusURL)
         | json
       }},
       "mrkdwn_in": ["text"],
@@ -29,7 +30,9 @@
         "• Last check-in: `" (.LastCheckIn.Format "2006-01-02 15:04:05 MST") "`\n"
         "• Expected by: `" (.ExpectedBy.Format "2006-01-02 15:04:05 MST") "`\n"
         "• Alerting at: `" (.AlertingAt.Format "2006-01-02 15:04:05 MST") "`\n"
-        "• " (when .Resolved "Resolved at" "Notified at") ": `" (.Now.Format "2006-01-02 15:04:05 MST") "`\n\n"
+        "• " (when .Resolved "Resolved at" "Notified at") ": `" (.Now.Format "2006-01-02 15:04:05 MST") "`"
+        (optional "\n\n*Status URL:* %s" .App.StatusURL)
+        "\n\n"
 
         "*Status:* `" .Status "`"
         | json
