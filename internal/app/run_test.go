@@ -239,10 +239,10 @@ func testTemplateFS() fstest.MapFS {
 			Data: []byte(`{{ .Title }}`),
 		},
 		"slack-incoming-webhook.tmpl": {
-			Data: []byte(`{"text":{{ json .Text }}}`),
+			Data: []byte(`{"channel":{{ json (.CustomData.channel | default "#alertmanager") }},"text":{{ json .Text }}}`),
 		},
 		"slack-chat-post-message.tmpl": {
-			Data: []byte(`{"channel":"#alertmanager","text":{{ json .Text }}}`),
+			Data: []byte(`{"channel":{{ json (.CustomData.channel | default "#alertmanager") }},"text":{{ json .Text }}}`),
 		},
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -172,6 +173,16 @@ func ParseArgs(args []string, version string) (Config, error) {
 		}).
 		Required().
 		Placeholder("URL")
+	tinyflags.DynamicEnum(
+		webhook,
+		"method",
+		http.MethodPost,
+		"HTTP method used for webhook requests",
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodPatch,
+		http.MethodDelete,
+	).Placeholder("METHOD")
 	webhook.Duration("timeout", 10*time.Second, "HTTP timeout").
 		Validate(func(value time.Duration) error {
 			if value <= 0 {
@@ -191,6 +202,9 @@ func ParseArgs(args []string, version string) (Config, error) {
 			_, err := httputils.ParseHeaders(s, false)
 			return err
 		}).
+		Placeholder("KEY=VALUE")
+	webhook.StringSlice("custom-data", nil, "Custom webhook template data in KEY=VALUE format").
+		Validate(validateKeyValue).
 		Placeholder("KEY=VALUE")
 	webhook.String("template", "", "Path or builtin:<name> template for webhook JSON body").
 		Required().
@@ -250,6 +264,9 @@ func ParseArgs(args []string, version string) (Config, error) {
 			return err
 		}).
 		Placeholder("KEY=VALUE")
+	email.StringSlice("custom-data", nil, "Custom email template data in KEY=VALUE format").
+		Validate(validateKeyValue).
+		Placeholder("KEY=VALUE")
 	email.String("template", "", "Path or builtin:<name> template for email body").
 		Required().
 		Placeholder("PATH|builtin:NAME")
@@ -267,4 +284,18 @@ func ParseArgs(args []string, version string) (Config, error) {
 	cfg.Notify = notifyConfig
 
 	return cfg, nil
+}
+
+// validateKeyValue validates a key=value string.
+func validateKeyValue(raw string) error {
+	key, _, ok := strings.Cut(raw, "=")
+	if !ok {
+		return errors.New("must be in KEY=VALUE format")
+	}
+
+	if strings.TrimSpace(key) == "" {
+		return errors.New("key must not be empty")
+	}
+
+	return nil
 }

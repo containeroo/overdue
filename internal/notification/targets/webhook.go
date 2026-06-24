@@ -36,6 +36,7 @@ const (
 type WebhookConfig struct {
 	Name              string
 	URL               string
+	Method            string
 	Headers           map[string]string
 	Timeout           time.Duration
 	SkipInsecure      bool
@@ -65,10 +66,14 @@ func NewWebhook(cfg WebhookConfig, renderer WebhookRenderer, logger *slog.Logger
 	if cfg.ResponseBodyLimit < 0 {
 		panic("webhook response body limit must not be negative")
 	}
+	if cfg.Method == "" {
+		cfg.Method = http.MethodPost
+	}
 	if cfg.LogResponse == "" {
 		cfg.LogResponse = LogResponseSummary
 	}
 	cfg.Headers = maps.Clone(cfg.Headers)
+	cfg.ContentTemplates = cfg.ContentTemplates.Clone()
 
 	return Webhook{
 		cfg:      cfg,
@@ -82,6 +87,7 @@ func NewWebhook(cfg WebhookConfig, renderer WebhookRenderer, logger *slog.Logger
 func (w Webhook) Config() WebhookConfig {
 	cfg := w.cfg
 	cfg.Headers = maps.Clone(cfg.Headers)
+	cfg.ContentTemplates = cfg.ContentTemplates.Clone()
 	return cfg
 }
 
@@ -110,7 +116,7 @@ func (w Webhook) Notify(ctx context.Context, event monitor.Event) error {
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, w.cfg.URL, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, w.cfg.Method, w.cfg.URL, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}

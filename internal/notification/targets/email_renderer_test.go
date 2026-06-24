@@ -68,6 +68,28 @@ func TestEmailRendererRender(t *testing.T) {
 		assert.Contains(t, message.Body, "prometheus is down")
 	})
 
+	t.Run("renders custom data in subject and body", func(t *testing.T) {
+		t.Parallel()
+
+		renderer, err := NewEmailRenderer(
+			nil,
+			writeTemplate(t, `owner={{ .CustomData.owner }} text={{ .Text }}`),
+			`subject {{ .CustomData.owner }}`,
+			`resolved {{ .CustomData.owner }}`,
+			render.ContentTemplates{
+				Text:       `{{ .CheckInName }} is owned by {{ .CustomData.owner }}`,
+				CustomData: map[string]string{"owner": "platform"},
+			},
+		)
+		require.NoError(t, err)
+
+		message, err := renderer.Render(testEvent())
+
+		require.NoError(t, err)
+		assert.Equal(t, "subject platform", message.Subject)
+		assert.Equal(t, "owner=platform text=prometheus is owned by platform", message.Body)
+	})
+
 	t.Run("renders resolved email message", func(t *testing.T) {
 		t.Parallel()
 

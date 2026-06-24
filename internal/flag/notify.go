@@ -2,6 +2,7 @@ package flag
 
 import (
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
@@ -56,14 +57,28 @@ func webhookConfigsFromDynamicGroup(version string, group *tinyflags.DynamicGrou
 		}
 		headers["User-Agent"] = "overdue/" + version
 
+		method := tinyflags.GetOrDefaultDynamic[string](group, id, "method")
+		if method == "" {
+			method = http.MethodPost
+		}
+
+		customData, err := keyValueMap(group.Name(), id, "custom-data", tinyflags.GetOrDefaultDynamic[[]string](group, id, "custom-data"))
+		if err != nil {
+			return nil, err
+		}
+
+		content := contentTemplates(group, id)
+		content.CustomData = customData
+
 		configs = append(configs, targets.WebhookConfig{
 			Name:              id,
 			URL:               tinyflags.GetOrDefaultDynamic[string](group, id, "url"),
+			Method:            method,
 			Headers:           headers,
 			Timeout:           tinyflags.GetOrDefaultDynamic[time.Duration](group, id, "timeout"),
 			SkipInsecure:      tinyflags.GetOrDefaultDynamic[bool](group, id, "skip-insecure"),
 			SendResolved:      tinyflags.GetOrDefaultDynamic[bool](group, id, "send-resolved"),
-			ContentTemplates:  contentTemplates(group, id),
+			ContentTemplates:  content,
 			Template:          tinyflags.GetOrDefaultDynamic[string](group, id, "template"),
 			LogResponse:       tinyflags.GetOrDefaultDynamic[targets.LogResponse](group, id, "log-response"),
 			ResponseBodyLimit: tinyflags.GetOrDefaultDynamic[int](group, id, "response-body-limit"),
@@ -88,6 +103,14 @@ func emailConfigsFromDynamicGroup(version string, group *tinyflags.DynamicGroup)
 		}
 		headers["X-Mailer"] = "overdue/" + version
 
+		customData, err := keyValueMap(group.Name(), id, "custom-data", tinyflags.GetOrDefaultDynamic[[]string](group, id, "custom-data"))
+		if err != nil {
+			return nil, err
+		}
+
+		content := contentTemplates(group, id)
+		content.CustomData = customData
+
 		configs = append(configs, targets.EmailConfig{
 			Name:                    id,
 			Host:                    tinyflags.GetOrDefaultDynamic[string](group, id, "smtp-host"),
@@ -101,7 +124,7 @@ func emailConfigsFromDynamicGroup(version string, group *tinyflags.DynamicGroup)
 			Headers:                 headers,
 			SubjectTemplate:         tinyflags.GetOrDefaultDynamic[string](group, id, "subject-template"),
 			ResolvedSubjectTemplate: tinyflags.GetOrDefaultDynamic[string](group, id, "resolved-subject-template"),
-			ContentTemplates:        contentTemplates(group, id),
+			ContentTemplates:        content,
 			Template:                tinyflags.GetOrDefaultDynamic[string](group, id, "template"),
 		})
 	}
@@ -139,6 +162,29 @@ func webhookHeadersMap(groupName, id string, headers []string) (parsed map[strin
 			}
 			parsed[name] = value
 		}
+	}
+
+	return parsed, nil
+}
+
+// keyValueMap creates a map from KEY=VALUE strings.
+func keyValueMap(groupName, id, field string, values []string) (map[string]string, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+
+	parsed := make(map[string]string, len(values))
+	for _, raw := range values {
+		key, value, ok := strings.Cut(raw, "=")
+		if !ok {
+			return nil, fmt.Errorf("invalid \"--%s.%s.%s\": must be in KEY=VALUE format", groupName, id, field)
+		}
+
+		key = strings.TrimSpace(key)
+		if key == "" {
+			return nil, fmt.Errorf("invalid \"--%s.%s.%s\": key must not be empty", groupName, id, field)
+		}
+		parsed[key] = value
 	}
 
 	return parsed, nil

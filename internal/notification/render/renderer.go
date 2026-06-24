@@ -21,10 +21,12 @@ type ContentRenderer struct {
 	resolvedTitle *template.Template
 	text          *template.Template
 	resolvedText  *template.Template
+	customData    map[string]string
 }
 
 // NewContentRenderer parses the shared notification title, text, and body templates.
 func NewContentRenderer(templateFS fs.FS, source string, content ContentTemplates) (renderer ContentRenderer, err error) {
+	content = content.Clone()
 	content.ApplyDefaults()
 
 	title, err := ParseInlineTemplate("title-template", content.Title)
@@ -61,6 +63,7 @@ func NewContentRenderer(templateFS fs.FS, source string, content ContentTemplate
 		resolvedTitle: resolvedTitle,
 		text:          text,
 		resolvedText:  resolvedText,
+		customData:    content.CustomData,
 	}, nil
 }
 
@@ -106,11 +109,11 @@ func (r ContentRenderer) Enrich(event monitor.Event) (enriched monitor.Event, er
 		textTemplate = r.resolvedText
 	}
 
-	title, err := ExecuteInlineTemplate(titleTemplate, event)
+	title, err := ExecuteInlineTemplate(titleTemplate, r.TemplateData(event))
 	if err != nil {
 		return monitor.Event{}, fmt.Errorf("render notification title: %w", err)
 	}
-	text, err := ExecuteInlineTemplate(textTemplate, event)
+	text, err := ExecuteInlineTemplate(textTemplate, r.TemplateData(event))
 	if err != nil {
 		return monitor.Event{}, fmt.Errorf("render notification text: %w", err)
 	}
@@ -132,10 +135,15 @@ func (r ContentRenderer) RenderBody(event monitor.Event) (text string, err error
 	}
 
 	var buf bytes.Buffer
-	if err := r.body.Execute(&buf, event); err != nil {
+	if err := r.body.Execute(&buf, r.TemplateData(event)); err != nil {
 		return "", fmt.Errorf("render notification template: %w", err)
 	}
 	return buf.String(), nil
+}
+
+// TemplateData returns the value passed to notification templates.
+func (r ContentRenderer) TemplateData(event monitor.Event) TemplateData {
+	return NewTemplateData(event, r.customData)
 }
 
 // withDefaults makes the zero value usable for tests and defensive construction.

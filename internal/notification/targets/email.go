@@ -49,6 +49,7 @@ func NewEmail(cfg EmailConfig, renderer EmailRenderer, logger *slog.Logger) Emai
 
 	cfg.To = append([]string(nil), cfg.To...)
 	cfg.Headers = maps.Clone(cfg.Headers)
+	cfg.ContentTemplates = cfg.ContentTemplates.Clone()
 
 	return Email{
 		cfg:      cfg,
@@ -62,6 +63,7 @@ func (e Email) Config() EmailConfig {
 	cfg := e.cfg
 	cfg.To = append([]string(nil), cfg.To...)
 	cfg.Headers = maps.Clone(cfg.Headers)
+	cfg.ContentTemplates = cfg.ContentTemplates.Clone()
 	return cfg
 }
 

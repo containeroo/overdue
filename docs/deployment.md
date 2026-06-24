@@ -20,6 +20,7 @@ docker run --rm -p 8080:8080 \
   -e OVERDUE__AUTH_TOKEN="$OVERDUE_TOKEN" \
   -e OVERDUE__WEBHOOK_OPS_URL="$SLACK_WEBHOOK_URL" \
   -e OVERDUE__WEBHOOK_OPS_TEMPLATE=builtin:slack-incoming-webhook \
+  -e OVERDUE__WEBHOOK_OPS_CUSTOM_DATA=channel=#alertmanager \
   -e OVERDUE__WEBHOOK_OPS_SEND_RESOLVED=true \
   ghcr.io/containeroo/overdue:latest
 ```

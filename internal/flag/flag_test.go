@@ -1,6 +1,7 @@
 package flag
 
 import (
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -70,10 +71,12 @@ func TestParseArgs(t *testing.T) {
 		t.Setenv("OVERDUE__EXPECTED_EVERY", "10s")
 		t.Setenv("OVERDUE__ALERTING_DELAY", "2s")
 		t.Setenv("OVERDUE__WEBHOOK_OPS_URL", "https://example.test/webhook")
+		t.Setenv("OVERDUE__WEBHOOK_OPS_METHOD", "PUT")
 		t.Setenv("OVERDUE__WEBHOOK_OPS_TIMEOUT", "3s")
 		t.Setenv("OVERDUE__WEBHOOK_OPS_SKIP_INSECURE", "true")
 		t.Setenv("OVERDUE__WEBHOOK_OPS_SEND_RESOLVED", "true")
 		t.Setenv("OVERDUE__WEBHOOK_OPS_LOG_RESPONSE", "body")
+		t.Setenv("OVERDUE__WEBHOOK_OPS_CUSTOM_DATA", "channel=#ops")
 		t.Setenv("OVERDUE__WEBHOOK_OPS_TEMPLATE", templatePath)
 
 		cfg, err := ParseArgs(nil, "dev")
@@ -81,10 +84,12 @@ func TestParseArgs(t *testing.T) {
 		require.NoError(t, err)
 		webhook := requireWebhookConfig(t, cfg.Notify.Webhooks, "ops")
 		assert.Equal(t, "https://example.test/webhook", webhook.URL)
+		assert.Equal(t, http.MethodPut, webhook.Method)
 		assert.Equal(t, 3*time.Second, webhook.Timeout)
 		assert.True(t, webhook.SkipInsecure)
 		assert.True(t, webhook.SendResolved)
 		assert.Equal(t, targets.LogResponseBody, webhook.LogResponse)
+		assert.Equal(t, map[string]string{"channel": "#ops"}, webhook.ContentTemplates.CustomData)
 		assert.Equal(t, templatePath, webhook.Template)
 	})
 
@@ -152,6 +157,7 @@ func TestParseArgs(t *testing.T) {
 		t.Setenv("OVERDUE__EMAIL_PRIMARY_FROM", "overdue@example.test")
 		t.Setenv("OVERDUE__EMAIL_PRIMARY_TO", "ops@example.test")
 		t.Setenv("OVERDUE__EMAIL_PRIMARY_HEADERS", "X-Trace=yes")
+		t.Setenv("OVERDUE__EMAIL_PRIMARY_CUSTOM_DATA", "owner=platform")
 		t.Setenv("OVERDUE__EMAIL_PRIMARY_TEMPLATE", templatePath)
 
 		cfg, err := ParseArgs(nil, "dev")
@@ -167,6 +173,7 @@ func TestParseArgs(t *testing.T) {
 		assert.Equal(t, "overdue@example.test", email.From)
 		assert.Equal(t, []string{"ops@example.test"}, email.To)
 		assert.Equal(t, map[string]string{"X-Mailer": "overdue/dev", "X-Trace": "yes"}, email.Headers)
+		assert.Equal(t, map[string]string{"owner": "platform"}, email.ContentTemplates.CustomData)
 	})
 
 	t.Run("accepts builtin email template without checking embedded fs", func(t *testing.T) {
@@ -190,6 +197,7 @@ func TestParseArgs(t *testing.T) {
 	t.Run("command line overrides dynamic env", func(t *testing.T) {
 		templatePath := writeTemplate(t, `{"text":{{ json .Text }}}`)
 		t.Setenv("OVERDUE__WEBHOOK_OPS_URL", "https://example.test/env")
+		t.Setenv("OVERDUE__WEBHOOK_OPS_METHOD", "PUT")
 		t.Setenv("OVERDUE__WEBHOOK_OPS_TIMEOUT", "3s")
 
 		cfg, err := ParseArgs([]string{

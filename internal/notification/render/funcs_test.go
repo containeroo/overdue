@@ -12,10 +12,11 @@ import (
 
 func TestParseInlineTemplate(t *testing.T) {
 	t.Parallel()
+
 	t.Run("parses helpers", func(t *testing.T) {
 		t.Parallel()
 
-		tmpl, err := ParseInlineTemplate("subject", `{{ upper (trim .CheckInName) }} {{ when .Resolved "up" "down" }}`)
+		tmpl, err := ParseInlineTemplate("subject", `{{ upper (trim .CheckInName) }} {{ .Resolved | when "up" "down" }}`)
 		require.NoError(t, err)
 
 		got, err := ExecuteInlineTemplate(tmpl, monitor.Event{CheckInName: " prometheus "})
@@ -35,6 +36,7 @@ func TestParseInlineTemplate(t *testing.T) {
 
 func TestExecuteInlineTemplate(t *testing.T) {
 	t.Parallel()
+
 	t.Run("executes template against event", func(t *testing.T) {
 		t.Parallel()
 
@@ -61,34 +63,70 @@ func TestExecuteInlineTemplate(t *testing.T) {
 
 func TestTemplateFuncs(t *testing.T) {
 	t.Parallel()
+
 	t.Run("contains all public template helpers", func(t *testing.T) {
 		t.Parallel()
 
 		funcs := templateFuncs()
 
-		for _, name := range []string{"ago", "default", "duration", "json", "lower", "trim", "upper", "when"} {
+		for _, name := range []string{
+			"ago",
+			"default",
+			"duration",
+			"json",
+			"lower",
+			"trim",
+			"upper",
+			"when",
+			"withPrefix",
+			"withSuffix",
+		} {
 			assert.Contains(t, funcs, name)
 		}
 	})
 }
 
+func TestTemplatePipelines(t *testing.T) {
+	t.Parallel()
+
+	t.Run("supports pipeline-friendly helper order", func(t *testing.T) {
+		t.Parallel()
+
+		tmpl, err := ParseInlineTemplate(
+			"pipeline",
+			`{{ .Channel | default "#alertmanager" | withPrefix "#" }} {{ .Resolved | when "up" "down" }}`,
+		)
+		require.NoError(t, err)
+
+		got, err := ExecuteInlineTemplate(tmpl, map[string]any{
+			"Channel":  "alerts",
+			"Resolved": true,
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, "#alerts up", got)
+	})
+}
+
 func TestConditionalString(t *testing.T) {
 	t.Parallel()
+
 	t.Run("selects true value", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, "yes", conditionalString(true, "yes", "no"))
+		assert.Equal(t, "yes", conditionalString("yes", "no", true))
 	})
 
 	t.Run("selects false value", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, "no", conditionalString(false, "yes", "no"))
+		assert.Equal(t, "no", conditionalString("yes", "no", false))
 	})
 }
 
 func TestDefaultTemplateValue(t *testing.T) {
 	t.Parallel()
+
 	t.Run("returns fallback for zero values", func(t *testing.T) {
 		t.Parallel()
 
@@ -109,6 +147,7 @@ func TestDefaultTemplateValue(t *testing.T) {
 
 func TestIsZeroTemplateValue(t *testing.T) {
 	t.Parallel()
+
 	t.Run("detects zero values", func(t *testing.T) {
 		t.Parallel()
 
@@ -133,6 +172,7 @@ func TestIsZeroTemplateValue(t *testing.T) {
 
 func TestTrimTemplateValue(t *testing.T) {
 	t.Parallel()
+
 	t.Run("trims surrounding whitespace", func(t *testing.T) {
 		t.Parallel()
 
@@ -142,6 +182,7 @@ func TestTrimTemplateValue(t *testing.T) {
 
 func TestUpperTemplateValue(t *testing.T) {
 	t.Parallel()
+
 	t.Run("uppercases values", func(t *testing.T) {
 		t.Parallel()
 
@@ -151,6 +192,7 @@ func TestUpperTemplateValue(t *testing.T) {
 
 func TestLowerTemplateValue(t *testing.T) {
 	t.Parallel()
+
 	t.Run("lowercases values", func(t *testing.T) {
 		t.Parallel()
 
@@ -160,6 +202,7 @@ func TestLowerTemplateValue(t *testing.T) {
 
 func TestTemplateString(t *testing.T) {
 	t.Parallel()
+
 	t.Run("converts nil to empty string", func(t *testing.T) {
 		t.Parallel()
 
@@ -175,6 +218,7 @@ func TestTemplateString(t *testing.T) {
 
 func TestAgoTemplateValue(t *testing.T) {
 	t.Parallel()
+
 	t.Run("renders past time", func(t *testing.T) {
 		t.Parallel()
 
@@ -205,6 +249,7 @@ func TestAgoTemplateValue(t *testing.T) {
 
 func TestDurationTemplateValue(t *testing.T) {
 	t.Parallel()
+
 	t.Run("renders duration values", func(t *testing.T) {
 		t.Parallel()
 
@@ -237,6 +282,7 @@ func TestDurationTemplateValue(t *testing.T) {
 
 func TestTemplateTime(t *testing.T) {
 	t.Parallel()
+
 	t.Run("accepts time values", func(t *testing.T) {
 		t.Parallel()
 
@@ -276,6 +322,7 @@ func TestTemplateTime(t *testing.T) {
 
 func TestTemplateDuration(t *testing.T) {
 	t.Parallel()
+
 	t.Run("accepts duration values", func(t *testing.T) {
 		t.Parallel()
 
@@ -315,6 +362,7 @@ func TestTemplateDuration(t *testing.T) {
 
 func TestFormatApproxDuration(t *testing.T) {
 	t.Parallel()
+
 	t.Run("formats useful duration precision", func(t *testing.T) {
 		t.Parallel()
 
@@ -328,6 +376,7 @@ func TestFormatApproxDuration(t *testing.T) {
 
 func TestJsonTemplateValue(t *testing.T) {
 	t.Parallel()
+
 	t.Run("renders json literal", func(t *testing.T) {
 		t.Parallel()
 
@@ -344,5 +393,73 @@ func TestJsonTemplateValue(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, fmt.Sprint(err), "unsupported type")
+	})
+}
+
+func TestWithPrefix(t *testing.T) {
+	t.Parallel()
+
+	t.Run("adds missing prefix", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "#alerts", withPrefix("#", "alerts"))
+	})
+
+	t.Run("keeps existing prefix", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "#alerts", withPrefix("#", "#alerts"))
+	})
+
+	t.Run("trims values", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "#alerts", withPrefix(" # ", " alerts "))
+	})
+
+	t.Run("returns empty for nil value", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Empty(t, withPrefix("#", nil))
+	})
+
+	t.Run("returns value unchanged for empty prefix", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "alerts", withPrefix("", "alerts"))
+	})
+}
+
+func TestWithSuffix(t *testing.T) {
+	t.Parallel()
+
+	t.Run("adds missing suffix", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "path/", withSuffix("/", "path"))
+	})
+
+	t.Run("keeps existing suffix", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "path/", withSuffix("/", "path/"))
+	})
+
+	t.Run("trims values", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "path/", withSuffix(" / ", " path "))
+	})
+
+	t.Run("returns empty for nil value", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Empty(t, withSuffix("/", nil))
+	})
+
+	t.Run("returns value unchanged for empty suffix", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "path", withSuffix("", "path"))
 	})
 }

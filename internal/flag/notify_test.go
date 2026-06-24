@@ -1,6 +1,7 @@
 package flag
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
@@ -20,6 +21,8 @@ func TestNotifyConfigFromDynamicGroups(t *testing.T) {
 		fs := notifyTestFlagSet(t, []string{
 			"--webhook.zeta.url=https://example.test/zeta",
 			"--webhook.zeta.headers=Authorization=Bearer token",
+			"--webhook.zeta.custom-data=channel=#ops",
+			"--webhook.zeta.method=PATCH",
 			"--webhook.zeta.timeout=5s",
 			"--webhook.zeta.skip-insecure=true",
 			"--webhook.zeta.send-resolved=true",
@@ -41,6 +44,7 @@ func TestNotifyConfigFromDynamicGroups(t *testing.T) {
 			"--email.ops.from=overdue@example.test",
 			"--email.ops.to=ops@example.test",
 			"--email.ops.headers=X-Trace=yes",
+			"--email.ops.custom-data=owner=platform",
 			"--email.ops.subject-template=subject",
 			"--email.ops.resolved-subject-template=resolved subject",
 			"--email.ops.title-template=email title",
@@ -57,13 +61,20 @@ func TestNotifyConfigFromDynamicGroups(t *testing.T) {
 		assert.Equal(t, "alpha", cfg.Webhooks[0].Name)
 		assert.Equal(t, "zeta", cfg.Webhooks[1].Name)
 		assert.Equal(t, targets.WebhookConfig{
-			Name:              "zeta",
-			URL:               "https://example.test/zeta",
-			Headers:           map[string]string{"Authorization": "Bearer token", "User-Agent": "overdue/dev"},
-			Timeout:           5 * time.Second,
-			SkipInsecure:      true,
-			SendResolved:      true,
-			ContentTemplates:  notifyTestContentTemplates("zeta"),
+			Name:         "zeta",
+			URL:          "https://example.test/zeta",
+			Method:       http.MethodPatch,
+			Headers:      map[string]string{"Authorization": "Bearer token", "User-Agent": "overdue/dev"},
+			Timeout:      5 * time.Second,
+			SkipInsecure: true,
+			SendResolved: true,
+			ContentTemplates: render.ContentTemplates{
+				Title:         "zeta title",
+				ResolvedTitle: "zeta resolved title",
+				Text:          "zeta text",
+				ResolvedText:  "zeta resolved text",
+				CustomData:    map[string]string{"channel": "#ops"},
+			},
 			Template:          "zeta.tmpl",
 			LogResponse:       targets.LogResponseBody,
 			ResponseBodyLimit: 128,
@@ -87,6 +98,7 @@ func TestNotifyConfigFromDynamicGroups(t *testing.T) {
 				ResolvedTitle: "email resolved title",
 				Text:          "email text",
 				ResolvedText:  "email resolved text",
+				CustomData:    map[string]string{"owner": "platform"},
 			},
 			Template: "email.tmpl",
 		}, cfg.Emails[0])
@@ -160,6 +172,7 @@ func TestWebhookConfigsFromDynamicGroupDefaults(t *testing.T) {
 	require.Len(t, configs, 1)
 	assert.Equal(t, targets.WebhookConfig{
 		Name:              "ops",
+		Method:            http.MethodPost,
 		URL:               "https://example.test/webhook",
 		Headers:           map[string]string{"User-Agent": "overdue/dev"},
 		Timeout:           10 * time.Second,
@@ -198,6 +211,46 @@ func TestEmailConfigsFromDynamicGroupDefaults(t *testing.T) {
 	}, configs[0])
 }
 
+func TestKeyValueMap(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns nil for empty values", func(t *testing.T) {
+		t.Parallel()
+
+		values, err := keyValueMap("webhook", "ops", "custom-data", nil)
+
+		require.NoError(t, err)
+		assert.Nil(t, values)
+	})
+
+	t.Run("parses key value pairs", func(t *testing.T) {
+		t.Parallel()
+
+		values, err := keyValueMap("webhook", "ops", "custom-data", []string{"channel=#ops", "owner=platform"})
+
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"channel": "#ops", "owner": "platform"}, values)
+	})
+
+	t.Run("rejects missing separator", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := keyValueMap("webhook", "ops", "custom-data", []string{"invalid"})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `invalid "--webhook.ops.custom-data"`)
+	})
+
+	t.Run("rejects empty keys", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := keyValueMap("email", "ops", "custom-data", []string{" =value"})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `invalid "--email.ops.custom-data"`)
+	})
+}
+
 func TestSortedInstances(t *testing.T) {
 	t.Parallel()
 
@@ -216,6 +269,16 @@ func notifyTestFlagSet(t *testing.T, args []string) *tinyflags.FlagSet {
 
 	webhook := fs.DynamicGroup("webhook")
 	webhook.String("url", "", "Webhook URL")
+	tinyflags.DynamicEnum(
+		webhook,
+		"method",
+		http.MethodPost,
+		"HTTP method",
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodPatch,
+		http.MethodDelete,
+	)
 	webhook.Duration("timeout", 10*time.Second, "HTTP timeout")
 	webhook.Bool("skip-insecure", false, "Skip TLS certificate verification")
 	webhook.Bool("send-resolved", false, "Send resolved notifications")
@@ -224,6 +287,7 @@ func notifyTestFlagSet(t *testing.T, args []string) *tinyflags.FlagSet {
 	webhook.String("text-template", `Check-in "{{ .CheckInName }}" is overdue:`, "Text template")
 	webhook.String("resolved-text-template", `Check-in "{{ .CheckInName }}" is resolved:`, "Resolved text template")
 	webhook.StringSlice("headers", nil, "HTTP headers")
+	webhook.StringSlice("custom-data", nil, "Custom data")
 	webhook.String("template", "", "Body template")
 	tinyflags.DynamicEnum(
 		webhook,
@@ -253,6 +317,7 @@ func notifyTestFlagSet(t *testing.T, args []string) *tinyflags.FlagSet {
 	email.String("from", "", "Sender")
 	email.StringSlice("to", []string{}, "Recipients")
 	email.StringSlice("headers", nil, "Email headers")
+	email.StringSlice("custom-data", nil, "Custom data")
 	email.String("template", "", "Body template")
 
 	require.NoError(t, fs.Parse(args))

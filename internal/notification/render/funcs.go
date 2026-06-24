@@ -8,8 +8,6 @@ import (
 	"strings"
 	"text/template"
 	"time"
-
-	"github.com/containeroo/overdue/internal/monitor"
 )
 
 // ParseInlineTemplate parses a single inline template value.
@@ -22,9 +20,9 @@ func ParseInlineTemplate(name, value string) (tmpl *template.Template, err error
 }
 
 // ExecuteInlineTemplate renders an inline template.
-func ExecuteInlineTemplate(tmpl *template.Template, event monitor.Event) (text string, err error) {
+func ExecuteInlineTemplate(tmpl *template.Template, data any) (text string, err error) {
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, event); err != nil {
+	if err := tmpl.Execute(&buf, data); err != nil {
 		return "", err
 	}
 	return buf.String(), nil
@@ -33,19 +31,26 @@ func ExecuteInlineTemplate(tmpl *template.Template, event monitor.Event) (text s
 // templateFuncs returns template helper functions.
 func templateFuncs() template.FuncMap {
 	return template.FuncMap{
-		"ago":      agoTemplateValue,
-		"default":  defaultTemplateValue,
-		"duration": durationTemplateValue,
-		"json":     jsonTemplateValue,
-		"lower":    lowerTemplateValue,
-		"trim":     trimTemplateValue,
-		"upper":    upperTemplateValue,
-		"when":     conditionalString,
+		"ago":        agoTemplateValue,
+		"default":    defaultTemplateValue,
+		"duration":   durationTemplateValue,
+		"json":       jsonTemplateValue,
+		"lower":      lowerTemplateValue,
+		"trim":       trimTemplateValue,
+		"upper":      upperTemplateValue,
+		"when":       conditionalString,
+		"withPrefix": withPrefix,
+		"withSuffix": withSuffix,
 	}
 }
 
 // conditionalString returns trueValue when condition is true and falseValue otherwise.
-func conditionalString(condition bool, trueValue, falseValue string) string {
+//
+// The argument order supports both direct and pipeline usage:
+//
+//	{{ when "Resolved at" "Notified at" .Resolved }}
+//	{{ .Resolved | when "Resolved at" "Notified at" }}
+func conditionalString(trueValue, falseValue string, condition bool) string {
 	if condition {
 		return trueValue
 	}
@@ -199,4 +204,46 @@ func jsonTemplateValue(value any) (literal string, err error) {
 		return "", err
 	}
 	return string(body), nil
+}
+
+// withPrefix returns value with prefix prepended when it is not already present.
+//
+// The argument order supports both direct and pipeline usage:
+//
+//	{{ withPrefix "#" .CustomData.channel }}
+//	{{ .CustomData.channel | withPrefix "#" }}
+func withPrefix(prefix string, value any) string {
+	if value == nil {
+		return ""
+	}
+
+	text := strings.TrimSpace(fmt.Sprint(value))
+	prefix = strings.TrimSpace(prefix)
+
+	if text == "" || prefix == "" || strings.HasPrefix(text, prefix) {
+		return text
+	}
+
+	return prefix + text
+}
+
+// withSuffix returns value with suffix appended when it is not already present.
+//
+// The argument order supports both direct and pipeline usage:
+//
+//	{{ withSuffix "/" .CustomData.path }}
+//	{{ .CustomData.path | withSuffix "/" }}
+func withSuffix(suffix string, value any) string {
+	if value == nil {
+		return ""
+	}
+
+	text := strings.TrimSpace(fmt.Sprint(value))
+	suffix = strings.TrimSpace(suffix)
+
+	if text == "" || suffix == "" || strings.HasSuffix(text, suffix) {
+		return text
+	}
+
+	return text + suffix
 }

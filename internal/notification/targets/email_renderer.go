@@ -97,7 +97,7 @@ func (r EmailRenderer) renderSubject(event monitor.Event) (subject string, err e
 		}
 	}
 
-	subject, err = render.ExecuteInlineTemplate(subjectTemplate, event)
+	subject, err = render.ExecuteInlineTemplate(subjectTemplate, r.content.TemplateData(event))
 	if err != nil {
 		return "", fmt.Errorf("render email subject: %w", err)
 	}

@@ -23,17 +23,22 @@ func TestNewWebhook(t *testing.T) {
 		t.Parallel()
 
 		headers := map[string]string{"Authorization": "Bearer token"}
+		customData := map[string]string{"channel": "#ops"}
 		webhook := NewWebhook(WebhookConfig{
 			Name:              "ops",
 			URL:               "https://example.test/webhook",
 			Headers:           headers,
+			ContentTemplates:  render.ContentTemplates{CustomData: customData},
 			Timeout:           5 * time.Second,
 			ResponseBodyLimit: 128,
 		}, WebhookRenderer{}, testLogger())
 		headers["Authorization"] = "Bearer changed"
+		customData["channel"] = "#changed"
 
 		cfg := webhook.Config()
 		assert.Equal(t, "Bearer token", cfg.Headers["Authorization"])
+		assert.Equal(t, "#ops", cfg.ContentTemplates.CustomData["channel"])
+		assert.Equal(t, http.MethodPost, cfg.Method)
 		assert.Equal(t, LogResponseSummary, cfg.LogResponse)
 		require.NotNil(t, webhook.Client())
 		assert.Equal(t, 5*time.Second, webhook.Client().Timeout)
@@ -120,6 +125,23 @@ func TestWebhookNotify(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, int32(1), called.Load())
+	})
+
+	t.Run("uses configured http method", func(t *testing.T) {
+		t.Parallel()
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, http.MethodPatch, r.Method)
+			w.WriteHeader(http.StatusNoContent)
+		}))
+		defer server.Close()
+
+		webhook := newTestWebhook(t, server.URL, LogResponseSummary, 128)
+		webhook.cfg.Method = http.MethodPatch
+
+		err := webhook.Notify(context.Background(), testEvent())
+
+		require.NoError(t, err)
 	})
 
 	t.Run("skips resolved events when disabled", func(t *testing.T) {

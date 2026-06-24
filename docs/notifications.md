@@ -31,6 +31,8 @@ Examples:
 
 ```sh
 export OVERDUE__WEBHOOK_OPS_URL=https://example.com/webhook
+export OVERDUE__WEBHOOK_OPS_METHOD=POST
+export OVERDUE__WEBHOOK_OPS_CUSTOM_DATA=channel=#ops
 export OVERDUE__WEBHOOK_OPS_TEMPLATE=builtin:slack-incoming-webhook
 export OVERDUE__WEBHOOK_OPS_SEND_RESOLVED=true
 
@@ -43,7 +45,7 @@ export OVERDUE__EMAIL_PRIMARY_TEMPLATE=builtin:email-html
 
 ## Webhook notifications
 
-Webhook notifications send a JSON `POST` request to the configured URL.
+Webhook notifications send a JSON request to the configured URL. The default method is `POST`; `PUT`, `PATCH`, and `DELETE` are also supported.
 
 Example:
 
@@ -52,6 +54,8 @@ overdue \
   --expected-every=1m \
   --alerting-delay=10s \
   --webhook.ops.url=https://example.com/webhook \
+  --webhook.ops.method=POST \
+  --webhook.ops.custom-data=channel=#ops \
   --webhook.ops.template=builtin:slack-incoming-webhook
 ```
 
@@ -61,6 +65,8 @@ With environment variables:
 export OVERDUE__EXPECTED_EVERY=1m
 export OVERDUE__ALERTING_DELAY=10s
 export OVERDUE__WEBHOOK_OPS_URL=https://example.com/webhook
+export OVERDUE__WEBHOOK_OPS_METHOD=POST
+export OVERDUE__WEBHOOK_OPS_CUSTOM_DATA=channel=#ops
 export OVERDUE__WEBHOOK_OPS_TEMPLATE=builtin:slack-incoming-webhook
 ```
 
@@ -69,6 +75,7 @@ export OVERDUE__WEBHOOK_OPS_TEMPLATE=builtin:slack-incoming-webhook
 | Flag                                       | Environment variable pattern                      | Default                                      | Description                                                             |
 | ------------------------------------------ | ------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------- |
 | `--webhook.<name>.url`                     | `OVERDUE__WEBHOOK_<NAME>_URL`                     | required                                     | Webhook URL.                                                            |
+| `--webhook.<name>.method`                  | `OVERDUE__WEBHOOK_<NAME>_METHOD`                  | `POST`                                       | HTTP method: `POST`, `PUT`, `PATCH`, or `DELETE`.                       |
 | `--webhook.<name>.timeout`                 | `OVERDUE__WEBHOOK_<NAME>_TIMEOUT`                 | `10s`                                        | HTTP timeout.                                                           |
 | `--webhook.<name>.skip-insecure`           | `OVERDUE__WEBHOOK_<NAME>_SKIP_INSECURE`           | `false`                                      | Skip TLS certificate verification.                                      |
 | `--webhook.<name>.send-resolved`           | `OVERDUE__WEBHOOK_<NAME>_SEND_RESOLVED`           | `false`                                      | Send a resolved notification after check-ins resume.                    |
@@ -77,6 +84,7 @@ export OVERDUE__WEBHOOK_OPS_TEMPLATE=builtin:slack-incoming-webhook
 | `--webhook.<name>.text-template`           | `OVERDUE__WEBHOOK_<NAME>_TEXT_TEMPLATE`           | `Check-in "{{ .CheckInName }}" is overdue:`  | Template for alerting webhook text.                                     |
 | `--webhook.<name>.resolved-text-template`  | `OVERDUE__WEBHOOK_<NAME>_RESOLVED_TEXT_TEMPLATE`  | `Check-in "{{ .CheckInName }}" is resolved:` | Template for resolved webhook text.                                     |
 | `--webhook.<name>.headers`                 | `OVERDUE__WEBHOOK_<NAME>_HEADERS`                 | empty                                        | HTTP header in `KEY=VALUE` format. Can be repeated.                     |
+| `--webhook.<name>.custom-data`             | `OVERDUE__WEBHOOK_<NAME>_CUSTOM_DATA`             | empty                                        | Template data in `KEY=VALUE` format, available under `.CustomData`. Can be repeated. |
 | `--webhook.<name>.template`                | `OVERDUE__WEBHOOK_<NAME>_TEMPLATE`                | required                                     | Path or `builtin:<name>` template for the webhook JSON body.            |
 | `--webhook.<name>.log-response`            | `OVERDUE__WEBHOOK_<NAME>_LOG_RESPONSE`            | `summary`                                    | Successful response logging mode: `summary`, `body`, `full`, or `none`. |
 | `--webhook.<name>.response-body-limit`     | `OVERDUE__WEBHOOK_<NAME>_RESPONSE_BODY_LIMIT`     | `4096`                                       | Maximum response body bytes to read for logs and errors.                |
@@ -113,6 +121,28 @@ With environment variables:
 export OVERDUE__WEBHOOK_OPS_HEADERS='Authorization=Bearer token'
 ```
 
+### Webhook custom data
+
+Pass target-local template data with `KEY=VALUE` pairs:
+
+```sh
+--webhook.ops.custom-data=channel=#ops
+--webhook.ops.custom-data=owner=platform
+```
+
+Templates can read those values through `.CustomData`:
+
+```gotemplate
+{{ .CustomData.channel }}
+{{ index .CustomData "owner" }}
+```
+
+With environment variables:
+
+```sh
+export OVERDUE__WEBHOOK_OPS_CUSTOM_DATA='channel=#ops'
+```
+
 ## Slack examples
 
 ### Slack incoming webhook
@@ -123,6 +153,7 @@ overdue \
   --alerting-delay=10s \
   --webhook.ops.url="$SLACK_WEBHOOK_URL" \
   --webhook.ops.template=builtin:slack-incoming-webhook \
+  --webhook.ops.custom-data=channel=#alertmanager \
   --webhook.ops.send-resolved
 ```
 
@@ -133,6 +164,7 @@ export OVERDUE__EXPECTED_EVERY=1m
 export OVERDUE__ALERTING_DELAY=10s
 export OVERDUE__WEBHOOK_OPS_URL="$SLACK_WEBHOOK_URL"
 export OVERDUE__WEBHOOK_OPS_TEMPLATE=builtin:slack-incoming-webhook
+export OVERDUE__WEBHOOK_OPS_CUSTOM_DATA=channel=#alertmanager
 export OVERDUE__WEBHOOK_OPS_SEND_RESOLVED=true
 ```
 
@@ -145,12 +177,11 @@ overdue \
   --webhook.ops.url=https://slack.com/api/chat.postMessage \
   --webhook.ops.headers="Authorization=Bearer $SLACK_TOKEN" \
   --webhook.ops.template=builtin:slack-chat-post-message \
+  --webhook.ops.custom-data=channel=#alertmanager \
   --webhook.ops.send-resolved
 ```
 
-The built-in `slack-chat-post-message` template uses `#alertmanager` as the channel.
-
-To use another channel, copy the built-in template, change the `channel` field, and pass the file path with `--webhook.<name>.template`.
+The built-in Slack templates render the channel from `.CustomData.channel`. If no channel is configured, they use `#alertmanager`.
 
 ## Email notifications
 
@@ -169,6 +200,7 @@ overdue \
   --email.primary.from=overdue@example.com \
   --email.primary.to=ops@example.com \
   --email.primary.headers='X-Trace=yes' \
+  --email.primary.custom-data=owner=platform \
   --email.primary.template=builtin:email-html \
   --email.primary.send-resolved
 ```
@@ -184,6 +216,7 @@ export OVERDUE__EMAIL_PRIMARY_SMTP_USER="$SMTP_USER"
 export OVERDUE__EMAIL_PRIMARY_SMTP_PASS="$SMTP_PASS"
 export OVERDUE__EMAIL_PRIMARY_FROM=overdue@example.com
 export OVERDUE__EMAIL_PRIMARY_TO=ops@example.com
+export OVERDUE__EMAIL_PRIMARY_CUSTOM_DATA=owner=platform
 export OVERDUE__EMAIL_PRIMARY_TEMPLATE=builtin:email-html
 export OVERDUE__EMAIL_PRIMARY_SEND_RESOLVED=true
 ```
@@ -207,6 +240,7 @@ export OVERDUE__EMAIL_PRIMARY_SEND_RESOLVED=true
 | `--email.<name>.from`                      | `OVERDUE__EMAIL_<NAME>_FROM`                      | required                                     | Email sender address.                                 |
 | `--email.<name>.to`                        | `OVERDUE__EMAIL_<NAME>_TO`                        | required                                     | Email recipient address. Can be repeated.             |
 | `--email.<name>.headers`                   | `OVERDUE__EMAIL_<NAME>_HEADERS`                   | empty                                        | Email header in `KEY=VALUE` format. Can be repeated.  |
+| `--email.<name>.custom-data`               | `OVERDUE__EMAIL_<NAME>_CUSTOM_DATA`               | empty                                        | Template data in `KEY=VALUE` format, available under `.CustomData`. Can be repeated. |
 | `--email.<name>.template`                  | `OVERDUE__EMAIL_<NAME>_TEMPLATE`                  | required                                     | Path or `builtin:<name>` template for the email body. |
 
 Overdue always adds `X-Mailer: overdue/<version>` to email notifications. User-provided `X-Mailer` values are ignored.

@@ -114,10 +114,10 @@ func testTemplates() Templates {
 			Data: []byte(`{{ .Title }}`),
 		},
 		"slack-incoming-webhook.tmpl": {
-			Data: []byte(`{"attachments":[]}`),
+			Data: []byte(`{"attachments":[],"channel":{{ json (.CustomData.channel | default "#alertmanager") }}}`),
 		},
 		"slack-chat-post-message.tmpl": {
-			Data: []byte(`{"channel":"#alertmanager","text":{{ json .Text }}}`),
+			Data: []byte(`{"channel":{{ json (.CustomData.channel | default "#alertmanager") }},"text":{{ json .Text }}}`),
 		},
 	})
 }

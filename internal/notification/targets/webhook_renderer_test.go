@@ -47,6 +47,21 @@ func TestWebhookRendererRenderBody(t *testing.T) {
 		assert.JSONEq(t, `{"title":"alerting prometheus","text":"prometheus is down"}`, string(body))
 	})
 
+	t.Run("renders custom data", func(t *testing.T) {
+		t.Parallel()
+
+		renderer, err := NewWebhookRenderer(nil, writeTemplate(t, `{"channel":{{ json .CustomData.channel }},"text":{{ json .Text }}}`), render.ContentTemplates{
+			Text:       `{{ .CheckInName }} is down`,
+			CustomData: map[string]string{"channel": "#ops"},
+		})
+		require.NoError(t, err)
+
+		_, body, err := renderer.RenderBody(testEvent())
+
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"channel":"#ops","text":"prometheus is down"}`, string(body))
+	})
+
 	t.Run("renders resolved content", func(t *testing.T) {
 		t.Parallel()
 

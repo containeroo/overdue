@@ -150,6 +150,26 @@ func TestContentRendererEnrich(t *testing.T) {
 		assert.Equal(t, "alerting", event.Text)
 	})
 
+	t.Run("makes custom data available to content templates", func(t *testing.T) {
+		t.Parallel()
+
+		renderer, err := NewContentRenderer(nil, writeTemplate(t, `{{ .Title }} / {{ .Text }} / {{ .CustomData.owner }}`), ContentTemplates{
+			Title:      `alerting {{ .CustomData.owner }}`,
+			Text:       `{{ .CheckInName }} is owned by {{ .CustomData.owner }}`,
+			CustomData: map[string]string{"owner": "platform"},
+		})
+		require.NoError(t, err)
+
+		event, err := renderer.Enrich(monitor.Event{CheckInName: "prometheus"})
+		require.NoError(t, err)
+		body, err := renderer.RenderBody(event)
+
+		require.NoError(t, err)
+		assert.Equal(t, "alerting platform", event.Title)
+		assert.Equal(t, "prometheus is owned by platform", event.Text)
+		assert.Equal(t, "alerting platform / prometheus is owned by platform / platform", body)
+	})
+
 	t.Run("renders resolved title and text", func(t *testing.T) {
 		t.Parallel()
 

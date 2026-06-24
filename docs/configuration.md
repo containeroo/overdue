@@ -17,9 +17,12 @@ Dynamic notification flags include the target name:
 
 ```text
 --webhook.ops.url                    -> OVERDUE__WEBHOOK_OPS_URL
+--webhook.ops.method                 -> OVERDUE__WEBHOOK_OPS_METHOD
+--webhook.ops.custom-data            -> OVERDUE__WEBHOOK_OPS_CUSTOM_DATA
 --webhook.ops.send-resolved          -> OVERDUE__WEBHOOK_OPS_SEND_RESOLVED
 --email.primary.smtp-host            -> OVERDUE__EMAIL_PRIMARY_SMTP_HOST
 --email.primary.smtp-skip-insecure   -> OVERDUE__EMAIL_PRIMARY_SMTP_SKIP_INSECURE
+--email.primary.custom-data          -> OVERDUE__EMAIL_PRIMARY_CUSTOM_DATA
 ```
 
 ## Required settings

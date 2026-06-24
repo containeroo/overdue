@@ -29,10 +29,10 @@ func testTemplateFS() fstest.MapFS {
 			Data: []byte(`{{ .Title }} Check-in status: {{ .Status }}`),
 		},
 		"slack-incoming-webhook.tmpl": {
-			Data: []byte(`{"attachments":[],"text":{{ json .Text }}}`),
+			Data: []byte(`{"attachments":[],"channel":{{ json (.CustomData.channel | default "#alertmanager") }},"text":{{ json .Text }}}`),
 		},
 		"slack-chat-post-message.tmpl": {
-			Data: []byte(`{"channel":"#alertmanager","text":{{ json .Text }}}`),
+			Data: []byte(`{"channel":{{ json (.CustomData.channel | default "#alertmanager") }},"text":{{ json .Text }}}`),
 		},
 	}
 }

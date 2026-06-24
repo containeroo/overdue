@@ -113,6 +113,8 @@ Dynamic notification flags include the target name:
 
 ```text
 --webhook.ops.url                  -> OVERDUE__WEBHOOK_OPS_URL
+--webhook.ops.method               -> OVERDUE__WEBHOOK_OPS_METHOD
+--webhook.ops.custom-data          -> OVERDUE__WEBHOOK_OPS_CUSTOM_DATA
 --email.primary.smtp-host          -> OVERDUE__EMAIL_PRIMARY_SMTP_HOST
 ```
 
@@ -130,6 +132,7 @@ docker run --rm -p 8080:8080 \
   -e OVERDUE__ALERTING_DELAY=10s \
   -e OVERDUE__WEBHOOK_OPS_URL="$SLACK_WEBHOOK_URL" \
   -e OVERDUE__WEBHOOK_OPS_TEMPLATE=builtin:slack-incoming-webhook \
+  -e OVERDUE__WEBHOOK_OPS_CUSTOM_DATA=channel=#alertmanager \
   -e OVERDUE__WEBHOOK_OPS_SEND_RESOLVED=true \
   ghcr.io/containeroo/overdue:latest
 ```
@@ -146,6 +149,7 @@ Use a built-in template:
 
 ```sh
 -e OVERDUE__WEBHOOK_OPS_TEMPLATE=builtin:slack-incoming-webhook
+-e OVERDUE__WEBHOOK_OPS_CUSTOM_DATA=channel=#alertmanager
 ```
 
 Custom templates can be mounted into the container and referenced by path:

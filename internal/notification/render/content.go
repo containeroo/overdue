@@ -2,6 +2,7 @@ package render
 
 import (
 	"fmt"
+	"maps"
 
 	"github.com/containeroo/overdue/internal/monitor"
 	"github.com/containeroo/overdue/internal/utils"
@@ -14,12 +15,13 @@ const (
 	defaultResolvedText  string = `Check-in "{{ .CheckInName }}" is resolved:`
 )
 
-// ContentTemplates configures title and text templates for alerting and resolved events.
+// ContentTemplates configures title, text, body template data, and resolved event templates.
 type ContentTemplates struct {
 	Title         string
 	ResolvedTitle string
 	Text          string
 	ResolvedText  string
+	CustomData    map[string]string
 }
 
 // DefaultContentTemplates returns the built-in notification title and text templates.
@@ -38,6 +40,30 @@ func (c *ContentTemplates) ApplyDefaults() {
 	c.ResolvedTitle = utils.DefaultIfZero(c.ResolvedTitle, defaultResolvedTitle)
 	c.Text = utils.DefaultIfZero(c.Text, defaultText)
 	c.ResolvedText = utils.DefaultIfZero(c.ResolvedText, defaultResolvedText)
+}
+
+// Clone returns an independent copy of the content template configuration.
+func (c ContentTemplates) Clone() ContentTemplates {
+	c.CustomData = maps.Clone(c.CustomData)
+	return c
+}
+
+// TemplateData is the value passed to notification templates.
+//
+// Event is embedded so existing templates can keep using fields such as
+// .CheckInName, .Title, and .Status directly. CustomData contains target-local
+// key/value pairs configured with custom-data flags.
+type TemplateData struct {
+	monitor.Event
+	CustomData map[string]string
+}
+
+// NewTemplateData builds template data from an event and target-local custom data.
+func NewTemplateData(event monitor.Event, customData map[string]string) TemplateData {
+	return TemplateData{
+		Event:      event,
+		CustomData: maps.Clone(customData),
+	}
 }
 
 // DefaultMessage returns the built-in notification message.
