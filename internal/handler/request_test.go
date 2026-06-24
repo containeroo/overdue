@@ -14,7 +14,7 @@ func TestRequestMetadata(t *testing.T) {
 	t.Run("builds request origin metadata", func(t *testing.T) {
 		t.Parallel()
 
-		req := httptest.NewRequest(http.MethodPost, "https://overdue.example.test/check-in?token=secret", nil)
+		req := httptest.NewRequest(http.MethodPost, "https://overdue.example.test/checkin?token=secret", nil)
 		req.RemoteAddr = "10.42.1.17:51234"
 		req.Header.Set("User-Agent", "curl/8.7.1")
 		req.Header.Set("X-Request-ID", "request-1")
@@ -28,7 +28,7 @@ func TestRequestMetadata(t *testing.T) {
 		assert.Equal(t, "10.42.1.17:51234", got.Remote)
 		assert.Equal(t, "203.0.113.10", got.ClientIP)
 		assert.Equal(t, http.MethodPost, got.Method)
-		assert.Equal(t, "/check-in", got.Path)
+		assert.Equal(t, "/checkin", got.Path)
 		assert.Equal(t, "overdue.example.test", got.Host)
 		assert.Equal(t, "HTTP/1.1", got.Proto)
 		assert.Equal(t, "curl/8.7.1", got.UserAgent)
@@ -74,7 +74,7 @@ func TestRequestMetadata(t *testing.T) {
 func TestHeaderValue(t *testing.T) {
 	t.Parallel()
 
-	request := httptest.NewRequest(http.MethodPost, "https://overdue.example.test/check-in?password=secret", nil)
+	request := httptest.NewRequest(http.MethodPost, "https://overdue.example.test/checkin?password=secret", nil)
 	request.Header.Set("token", "secret")
 
 	t.Run("returns trimmed value", func(t *testing.T) {
@@ -100,7 +100,7 @@ func TestRequestMetadata_LogFields(t *testing.T) {
 			Remote:          "10.42.1.17:51234",
 			ClientIP:        "203.0.113.10",
 			Method:          "POST",
-			Path:            "/check-in",
+			Path:            "/checkin",
 			Host:            "overdue.example.test",
 			Proto:           "HTTP/1.1",
 			UserAgent:       "curl/8.7.1",
@@ -117,7 +117,7 @@ func TestRequestMetadata_LogFields(t *testing.T) {
 		assert.Equal(t, "10.42.1.17:51234", got["remote"])
 		assert.Equal(t, "203.0.113.10", got["clientIP"])
 		assert.Equal(t, "POST", got["method"])
-		assert.Equal(t, "/check-in", got["path"])
+		assert.Equal(t, "/checkin", got["path"])
 		assert.Equal(t, "overdue.example.test", got["host"])
 		assert.Equal(t, "HTTP/1.1", got["proto"])
 		assert.Equal(t, "curl/8.7.1", got["userAgent"])
@@ -148,31 +148,31 @@ func TestWantsDetails(t *testing.T) {
 	t.Run("accepts true", func(t *testing.T) {
 		t.Parallel()
 
-		assert.True(t, wantsDetails(httptest.NewRequest(http.MethodPost, "/check-in?details=true", nil)))
+		assert.True(t, wantsDetails(httptest.NewRequest(http.MethodPost, "/checkin?details=true", nil)))
 	})
 
 	t.Run("accepts one", func(t *testing.T) {
 		t.Parallel()
 
-		assert.True(t, wantsDetails(httptest.NewRequest(http.MethodPost, "/check-in?details=1", nil)))
+		assert.True(t, wantsDetails(httptest.NewRequest(http.MethodPost, "/checkin?details=1", nil)))
 	})
 
 	t.Run("accepts yes", func(t *testing.T) {
 		t.Parallel()
 
-		assert.True(t, wantsDetails(httptest.NewRequest(http.MethodPost, "/check-in?details=yes", nil)))
+		assert.True(t, wantsDetails(httptest.NewRequest(http.MethodPost, "/checkin?details=yes", nil)))
 	})
 
 	t.Run("rejects false", func(t *testing.T) {
 		t.Parallel()
 
-		assert.False(t, wantsDetails(httptest.NewRequest(http.MethodPost, "/check-in?details=false", nil)))
+		assert.False(t, wantsDetails(httptest.NewRequest(http.MethodPost, "/checkin?details=false", nil)))
 	})
 
 	t.Run("rejects missing value", func(t *testing.T) {
 		t.Parallel()
 
-		assert.False(t, wantsDetails(httptest.NewRequest(http.MethodPost, "/check-in", nil)))
+		assert.False(t, wantsDetails(httptest.NewRequest(http.MethodPost, "/checkin", nil)))
 	})
 }
 

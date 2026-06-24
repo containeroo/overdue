@@ -14,7 +14,6 @@ import (
 
 func TestNewContentRenderer(t *testing.T) {
 	t.Parallel()
-
 	t.Run("builds renderer with inline content and file body", func(t *testing.T) {
 		t.Parallel()
 
@@ -61,37 +60,117 @@ func TestNewContentRenderer(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "read notification template")
 	})
+}
 
-	t.Run("returns body template parse errors", func(t *testing.T) {
+func TestParseBodyTemplate(t *testing.T) {
+	t.Parallel()
+	t.Run("parses valid body template", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := NewContentRenderer(nil, writeTemplate(t, `{{ if }}`), DefaultContentTemplates())
+		path := writeTemplate(t, `{{ json .Text }}`)
+
+		tmpl, err := parseBodyTemplate(nil, path)
+
+		require.NoError(t, err)
+		require.NotNil(t, tmpl)
+	})
+
+	t.Run("wraps parse errors", func(t *testing.T) {
+		t.Parallel()
+
+		path := writeTemplate(t, `{{ if }}`)
+
+		_, err := parseBodyTemplate(nil, path)
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "parse notification template")
 	})
 }
 
+func TestReadBodyTemplate(t *testing.T) {
+	t.Parallel()
+	t.Run("reads builtin templates", func(t *testing.T) {
+		t.Parallel()
+
+		name, body, err := readBodyTemplate(testTemplateFS(), " builtin:body ")
+
+		require.NoError(t, err)
+		assert.Equal(t, "body.tmpl", name)
+		assert.Equal(t, `{{ .Title }}`, body)
+	})
+
+	t.Run("reads file templates", func(t *testing.T) {
+		t.Parallel()
+
+		path := writeTemplate(t, `{{ .Text }}`)
+
+		name, body, err := readBodyTemplate(nil, path)
+
+		require.NoError(t, err)
+		assert.Equal(t, filepath.Base(path), name)
+		assert.Equal(t, `{{ .Text }}`, body)
+	})
+
+	t.Run("returns builtin read errors", func(t *testing.T) {
+		t.Parallel()
+
+		_, _, err := readBodyTemplate(nil, "builtin:body")
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "built-in templates are not configured")
+	})
+
+	t.Run("returns file read errors", func(t *testing.T) {
+		t.Parallel()
+
+		_, _, err := readBodyTemplate(nil, filepath.Join(t.TempDir(), "missing.tmpl"))
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "read notification template")
+	})
+}
+
 func TestContentRendererEnrich(t *testing.T) {
 	t.Parallel()
-
-	t.Run("renders title and text", func(t *testing.T) {
+	t.Run("renders alerting title and text", func(t *testing.T) {
 		t.Parallel()
 
 		renderer, err := NewContentRenderer(nil, "", ContentTemplates{
-			Title: `alerting {{ .CheckInName }}`,
-			Text:  `{{ .CheckInName }} is down`,
+			Title:         `alerting {{ upper .CheckInName }}`,
+			ResolvedTitle: `resolved {{ upper .CheckInName }}`,
+			Text:          `{{ .Status | default "alerting" }}`,
+			ResolvedText:  `resolved`,
 		})
 		require.NoError(t, err)
 
 		event, err := renderer.Enrich(monitor.Event{CheckInName: "prometheus"})
 
 		require.NoError(t, err)
-		assert.Equal(t, "alerting prometheus", event.Title)
-		assert.Equal(t, "prometheus is down", event.Text)
+		assert.Equal(t, "alerting PROMETHEUS", event.Title)
+		assert.Equal(t, "alerting", event.Text)
 	})
 
-	t.Run("renders custom data", func(t *testing.T) {
+	t.Run("makes app data available to content templates", func(t *testing.T) {
+		t.Parallel()
+
+		renderer, err := NewContentRenderer(nil, writeTemplate(t, `{{ .App.CheckInURL }} / {{ .App.StatusURL }}`), ContentTemplates{
+			Title: `{{ .App.PublicURL }}`,
+			Text:  `{{ .App.CheckInURL }}`,
+			App:   NewAppData("v0.0.7", "https://overdue.example.test/overdue", "/checkin"),
+		})
+		require.NoError(t, err)
+
+		event, err := renderer.Enrich(monitor.Event{CheckInName: "prometheus"})
+		require.NoError(t, err)
+		body, err := renderer.RenderBody(event)
+
+		require.NoError(t, err)
+		assert.Equal(t, "https://overdue.example.test/overdue", event.Title)
+		assert.Equal(t, "https://overdue.example.test/overdue/checkin", event.Text)
+		assert.Equal(t, "https://overdue.example.test/overdue/checkin / https://overdue.example.test/overdue/status", body)
+	})
+
+	t.Run("makes custom data available to content templates", func(t *testing.T) {
 		t.Parallel()
 
 		renderer, err := NewContentRenderer(nil, writeTemplate(t, `{{ .Title }} / {{ .Text }} / {{ .CustomData.owner }}`), ContentTemplates{
@@ -102,42 +181,13 @@ func TestContentRendererEnrich(t *testing.T) {
 		require.NoError(t, err)
 
 		event, err := renderer.Enrich(monitor.Event{CheckInName: "prometheus"})
-
 		require.NoError(t, err)
 		body, err := renderer.RenderBody(event)
-		require.NoError(t, err)
 
+		require.NoError(t, err)
 		assert.Equal(t, "alerting platform", event.Title)
 		assert.Equal(t, "prometheus is owned by platform", event.Text)
 		assert.Equal(t, "alerting platform / prometheus is owned by platform / platform", body)
-	})
-
-	t.Run("renders app data", func(t *testing.T) {
-		t.Parallel()
-
-		app := AppData{
-			Version:    "v0.0.7",
-			PublicURL:  "https://overdue.example.test/overdue",
-			CheckInURL: "https://overdue.example.test/overdue/check-in",
-			StatusURL:  "https://overdue.example.test/overdue/status",
-		}
-
-		renderer, err := NewContentRenderer(nil, writeTemplate(t, `{{ .App.Version }} / {{ .App.CheckInURL }} / {{ .App.StatusURL }}`), ContentTemplates{
-			Title: `overdue {{ .App.Version }}`,
-			Text:  `status: {{ .App.StatusURL }}`,
-			App:   app,
-		})
-		require.NoError(t, err)
-
-		event, err := renderer.Enrich(monitor.Event{CheckInName: "prometheus"})
-
-		require.NoError(t, err)
-		body, err := renderer.RenderBody(event)
-		require.NoError(t, err)
-
-		assert.Equal(t, "overdue v0.0.7", event.Title)
-		assert.Equal(t, "status: https://overdue.example.test/overdue/status", event.Text)
-		assert.Equal(t, "v0.0.7 / https://overdue.example.test/overdue/check-in / https://overdue.example.test/overdue/status", body)
 	})
 
 	t.Run("renders resolved title and text", func(t *testing.T) {
@@ -189,7 +239,6 @@ func TestContentRendererEnrich(t *testing.T) {
 
 func TestContentRendererRenderBody(t *testing.T) {
 	t.Parallel()
-
 	t.Run("returns default body without configured body template", func(t *testing.T) {
 		t.Parallel()
 
@@ -226,7 +275,6 @@ func TestContentRendererRenderBody(t *testing.T) {
 
 func TestContentRendererWithDefaults(t *testing.T) {
 	t.Parallel()
-
 	t.Run("returns renderer unchanged when complete", func(t *testing.T) {
 		t.Parallel()
 

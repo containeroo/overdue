@@ -41,7 +41,7 @@ func TestRun(t *testing.T) {
 
 		waitForHTTPStatus(t, client, baseURL+"/healthz", http.MethodGet, http.StatusOK)
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/check-in", nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/checkin", nil)
 		require.NoError(t, err)
 
 		resp, err := client.Do(req)

@@ -47,11 +47,11 @@ func Run(
 		"listenAddr", flags.ListenAddr,
 		"routePrefix", flags.RoutePrefix,
 		"publicURL", flags.PublicURL,
-		"checkInName", flags.CheckInName,
-		"checkInPath", flags.CheckInPath,
-		"expectedEvery", flags.ExpectedEvery.String(),
-		"alertingDelay", flags.AlertingDelay.String(),
-		"startActive", flags.StartActive,
+		"name", flags.CheckIn.Name,
+		"path", flags.CheckIn.Path,
+		"expectedEvery", flags.CheckIn.ExpectedEvery.String(),
+		"alertingDelay", flags.CheckIn.AlertingDelay.String(),
+		"startActive", flags.CheckIn.StartActive,
 		"responseDetails", flags.ResponseDetails,
 		"initialPhase", monitor.PhaseScheduled,
 	)
@@ -59,9 +59,9 @@ func Run(
 	if err := notifier.ValidateRuntimeTemplates(
 		templateFS,
 		flags.Notify,
-		flags.CheckInName,
-		flags.ExpectedEvery,
-		flags.AlertingDelay,
+		flags.CheckIn.Name,
+		flags.CheckIn.ExpectedEvery,
+		flags.CheckIn.AlertingDelay,
 	); err != nil {
 		setupLog.Error("notification template validation error", "error", err)
 		return err
@@ -83,21 +83,21 @@ func Run(
 	defer stop()
 
 	mon := monitor.New(
-		flags.CheckInName,
-		flags.ExpectedEvery,
-		flags.AlertingDelay,
+		flags.CheckIn.Name,
+		flags.CheckIn.ExpectedEvery,
+		flags.CheckIn.AlertingDelay,
 		logger.With("component", "monitor"),
 	)
 
 	sched := scheduler.New(mon, notify, reg, logger.With("component", "scheduler"))
-	if flags.StartActive {
+	if flags.CheckIn.StartActive {
 		activatedAt := time.Now()
 		sched.RecordCheckIn(activatedAt)
 		setupLog.Info(
 			"check-in monitor activated at startup",
 			"activatedAt", activatedAt,
-			"expectedBy", activatedAt.Add(flags.ExpectedEvery),
-			"alertingAt", activatedAt.Add(flags.ExpectedEvery+flags.AlertingDelay),
+			"expectedBy", activatedAt.Add(flags.CheckIn.ExpectedEvery),
+			"alertingAt", activatedAt.Add(flags.CheckIn.ExpectedEvery+flags.CheckIn.AlertingDelay),
 		)
 	}
 	sched.Run(ctx)
@@ -113,14 +113,14 @@ func Run(
 		logger.With("component", "api"),
 	)
 
-	router := routes.NewRouter(flags.CheckInPath, flags.RoutePrefix, api)
+	router := routes.NewRouter(flags.CheckIn.Path, flags.RoutePrefix, api)
 	if err := server.Run(
 		ctx,
-		flags.ListenAddr,
+		flags.ListenAddr.String(),
 		router,
 		logger.With("component", "server"),
 	); err != nil {
-		setupLog.Error("server run", "listenAddr", flags.ListenAddr, "error", err)
+		setupLog.Error("server run", "listenAddr", flags.ListenAddr.String(), "error", err)
 		return err
 	}
 

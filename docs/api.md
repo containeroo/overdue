@@ -4,16 +4,16 @@ Overdue exposes a small HTTP API.
 
 | Method        | Path        | Description                | Auth required with `--auth-token` |
 | ------------- | ----------- | -------------------------- | --------------------------------- |
-| `GET`, `POST` | `/check-in` | Records a check-in.        | yes                               |
+| `GET`, `POST` | `/checkin` | Records a check-in.        | yes                               |
 | `GET`         | `/status`   | Returns monitor state.     | yes                               |
 | `GET`         | `/version`  | Returns build information. | no                                |
 | `GET`, `POST` | `/healthz`  | Returns `ok`.              | no                                |
 
-The check-in path is configurable with `--check-in-path`.
+The check-in endpoint path is configurable with `--path`.
 
 The other routes are mounted under `--route-prefix` when a route prefix is configured.
 
-## `GET /check-in` and `POST /check-in`
+## `GET /checkin` and `POST /checkin`
 
 Records a check-in.
 
@@ -215,8 +215,8 @@ overdue \
 Routes become:
 
 ```text
-GET  /overdue/check-in
-POST /overdue/check-in
+GET  /overdue/checkin
+POST /overdue/checkin
 GET  /overdue/status
 GET  /overdue/version
 GET  /overdue/healthz
@@ -234,5 +234,7 @@ This becomes:
 ```text
 /overdue
 ```
+
+
 
 

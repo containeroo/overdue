@@ -25,10 +25,7 @@ type AppData struct {
 
 // NewAppData builds application template data from normalized application settings.
 func NewAppData(version, publicURL, checkInPath string) AppData {
-	app := AppData{
-		Version: version,
-	}
-
+	app := AppData{Version: version}
 	if publicURL == "" {
 		return app
 	}
@@ -36,7 +33,6 @@ func NewAppData(version, publicURL, checkInPath string) AppData {
 	app.PublicURL = publicURL
 	app.CheckInURL = publicURL + checkInPath
 	app.StatusURL = publicURL + "/status"
-
 	return app
 }
 

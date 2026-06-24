@@ -65,7 +65,7 @@ docker run --rm -p 8080:8080 \
 Send a check-in:
 
 ```sh
-curl -XPOST http://localhost:8080/check-in
+curl -XPOST http://localhost:8080/checkin
 ```
 
 Read the current status:
@@ -100,8 +100,8 @@ Core settings:
 | `--listen-address`   | `OVERDUE__LISTEN_ADDRESS`   | `:8080`     | HTTP server listen address.                                                |
 | `--route-prefix`     | `OVERDUE__ROUTE_PREFIX`     | empty       | Path prefix to mount the service under.                                    |
 | `--public-url`       | `OVERDUE__PUBLIC_URL`       | empty       | Externally reachable base URL used in notification templates.              |
-| `--check-in-name`    | `OVERDUE__CHECK_IN_NAME`    | `default`   | Name of the check-in monitor used in notifications.                        |
-| `--check-in-path`    | `OVERDUE__CHECK_IN_PATH`    | `/check-in` | Route used to receive check-ins.                                           |
+| `--name`             | `OVERDUE__NAME`           | `default`   | Name of the check-in monitor used in notifications.                        |
+| `--path`             | `OVERDUE__PATH`           | `/checkin`  | Route used to receive check-ins.                                           |
 | `--start-active`     | `OVERDUE__START_ACTIVE`     | `false`     | Activate the monitor at startup instead of waiting for the first check-in. |
 | `--response-details` | `OVERDUE__RESPONSE_DETAILS` | `false`     | Return detailed timing fields from check-in responses by default.          |
 | `--auth-token`       | `OVERDUE__AUTH_TOKEN`       | empty       | Optional bearer token required for check-in and status requests.           |
@@ -113,6 +113,8 @@ Environment variables use the `OVERDUE__` prefix. Flag names are uppercased and 
 Dynamic notification flags include the target name:
 
 ```text
+--name                            -> OVERDUE__NAME
+--path                            -> OVERDUE__PATH
 --public-url                      -> OVERDUE__PUBLIC_URL
 --webhook.ops.url                  -> OVERDUE__WEBHOOK_OPS_URL
 --webhook.ops.method               -> OVERDUE__WEBHOOK_OPS_METHOD
@@ -160,7 +162,7 @@ Custom templates can be mounted into the container and referenced by path:
 -e OVERDUE__WEBHOOK_OPS_TEMPLATE=/etc/overdue/slack.tmpl
 ```
 
-Webhook templates must render valid JSON. Email templates may render text or HTML. When `--public-url` is configured, templates can use `.App.PublicURL`, `.App.CheckInURL`, and `.App.StatusURL`.
+Webhook templates must render valid JSON. Email templates may render text or HTML. When `--public-url` is configured, templates can use `.App.Version`, `.App.PublicURL`, `.App.CheckInURL`, and `.App.StatusURL`.
 
 See [docs/templates.md](docs/templates.md) for built-in templates, template data, and helper functions.
 
@@ -168,12 +170,12 @@ See [docs/templates.md](docs/templates.md) for built-in templates, template data
 
 | Method        | Path        | Description                |
 | ------------- | ----------- | -------------------------- |
-| `GET`, `POST` | `/check-in` | Records a check-in.        |
+| `GET`, `POST` | `/checkin` | Records a check-in.        |
 | `GET`         | `/status`   | Returns the monitor state. |
 | `GET`         | `/version`  | Returns build information. |
 | `GET`, `POST` | `/healthz`  | Returns a health response. |
 
-The check-in path is configurable with `--check-in-path`. The other routes are mounted under `--route-prefix` when a route prefix is configured.
+The check-in endpoint path is configurable with `--path`. The other routes are mounted under `--route-prefix` when a route prefix is configured.
 
 See [docs/api.md](docs/api.md) for response examples and route prefix details.
 

@@ -28,7 +28,7 @@ docker run --rm -p 8080:8080 \
 Check in:
 
 ```sh
-curl -XPOST http://localhost:8080/check-in \
+curl -XPOST http://localhost:8080/checkin \
   -H "Authorization: Bearer $OVERDUE_TOKEN"
 ```
 
@@ -97,3 +97,5 @@ The top-level directory command applies the core manifests only. Apply the optio
 Expose the service through your ingress or gateway as usual.
 
 If Overdue is mounted below a path prefix, set `OVERDUE__ROUTE_PREFIX` and make sure your ingress forwards the same prefix.
+
+

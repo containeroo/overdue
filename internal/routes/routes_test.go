@@ -55,7 +55,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("does not mount removed history route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/check-in", "/overdue", "")
+		h := testRouter("/checkin", "/overdue", "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/history", nil))
@@ -66,7 +66,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("mounts metrics route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/check-in", "/overdue", "")
+		h := testRouter("/checkin", "/overdue", "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/metrics", nil))
@@ -78,7 +78,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("mounts status route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/check-in", "/overdue", "")
+		h := testRouter("/checkin", "/overdue", "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/status", nil))
@@ -90,7 +90,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("mounts version route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/check-in", "/overdue", "")
+		h := testRouter("/checkin", "/overdue", "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/version", nil))
@@ -102,7 +102,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("mounts healthz route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/check-in", "/overdue", "")
+		h := testRouter("/checkin", "/overdue", "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/healthz", nil))
@@ -114,7 +114,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("mounts post healthz route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/check-in", "/overdue", "")
+		h := testRouter("/checkin", "/overdue", "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/overdue/healthz", nil))
@@ -126,7 +126,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("rejects unauthorized status route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/check-in", "/overdue", "secret")
+		h := testRouter("/checkin", "/overdue", "secret")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/status", nil))
@@ -138,8 +138,8 @@ func TestNewRouter(t *testing.T) {
 	t.Run("accepts authorized check-in route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/check-in", "/overdue", "secret")
-		req := httptest.NewRequest(http.MethodPost, "/overdue/check-in", nil)
+		h := testRouter("/checkin", "/overdue", "secret")
+		req := httptest.NewRequest(http.MethodPost, "/overdue/checkin", nil)
 		req.Header.Set("Authorization", "Bearer secret")
 		rec := httptest.NewRecorder()
 

@@ -6,7 +6,7 @@ TEST_FLAGS ?= -covermode=atomic -count=1 -parallel=4 -timeout=5m
 
 BASE_URL ?= http://localhost:8080
 ROUTE_PREFIX ?=
-CHECK_IN_PATH ?= /check-in
+CHECKIN_CHECKIN_PATH ?= /checkin
 AUTH_TOKEN ?=
 RUN_ARGS ?= --expected-every=5s --overdue-delay=3s
 
@@ -90,7 +90,7 @@ run-test: ## Run a local instance with example webhook and email settings.
 	go run . \
 		--expected-every=5s \
 		--alerting-delay=3s \
-		--check-in-name=prometheus \
+		--name=prometheus \
 		--webhook.ops.url=https://slack.com/api/chat.postMessage \
 		--webhook.ops.headers="Authorization=Bearer $${SLACK_TOKEN}" \
 		--webhook.ops.template=builtin:slack-chat-post-message \
@@ -110,11 +110,11 @@ run-test: ## Run a local instance with example webhook and email settings.
 
 .PHONY: check-in
 check-in: ## Send a local check-in request. Example: make check-in | jq .
-	@$(CURL) $(CURL_FLAGS) $(AUTH_HEADER) -X POST "$(BASE_URL)$(ROUTE_PREFIX)$(CHECK_IN_PATH)"
+	@$(CURL) $(CURL_FLAGS) $(AUTH_HEADER) -X POST "$(BASE_URL)$(ROUTE_PREFIX)$(CHECKIN_PATH)"
 
 .PHONY: check-in-details
 check-in-details: ## Send a local check-in request with details. Example: make check-in-details | jq .
-	@$(CURL) $(CURL_FLAGS) $(AUTH_HEADER) -X POST "$(BASE_URL)$(ROUTE_PREFIX)$(CHECK_IN_PATH)?details=true"
+	@$(CURL) $(CURL_FLAGS) $(AUTH_HEADER) -X POST "$(BASE_URL)$(ROUTE_PREFIX)$(CHECKIN_PATH)?details=true"
 
 .PHONY: status
 status: ## Send a local status request. Example: make status | jq .
@@ -165,3 +165,5 @@ endpoints-details: ## Test all local endpoints. Example: make endpoints-details 
 .PHONY: help
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+

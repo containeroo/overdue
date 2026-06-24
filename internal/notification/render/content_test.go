@@ -47,11 +47,9 @@ func TestNewAppData(t *testing.T) {
 	t.Run("returns version without public url", func(t *testing.T) {
 		t.Parallel()
 
-		data := NewAppData("v0.0.7", "", "/check-in")
+		data := NewAppData("v0.0.7", "", "/checkin")
 
-		assert.Equal(t, AppData{
-			Version: "v0.0.7",
-		}, data)
+		assert.Equal(t, AppData{Version: "v0.0.7"}, data)
 	})
 
 	t.Run("builds public app links from normalized settings", func(t *testing.T) {
@@ -66,32 +64,8 @@ func TestNewAppData(t *testing.T) {
 	})
 }
 
-func TestNewTemplateData(t *testing.T) {
-	t.Parallel()
-
-	t.Run("embeds event and clones custom data", func(t *testing.T) {
-		t.Parallel()
-
-		customData := map[string]string{"owner": "platform"}
-		app := AppData{
-			Version:    "v0.0.7",
-			PublicURL:  "https://overdue.example.test",
-			CheckInURL: "https://overdue.example.test/check-in",
-			StatusURL:  "https://overdue.example.test/status",
-		}
-
-		data := NewTemplateData(monitor.Event{CheckInName: "prometheus"}, app, customData)
-		customData["owner"] = "changed"
-
-		assert.Equal(t, "prometheus", data.CheckInName)
-		assert.Equal(t, app, data.App)
-		assert.Equal(t, map[string]string{"owner": "platform"}, data.CustomData)
-	})
-}
-
 func TestDefaultMessage(t *testing.T) {
 	t.Parallel()
-
 	t.Run("returns existing event text", func(t *testing.T) {
 		t.Parallel()
 

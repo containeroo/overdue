@@ -9,7 +9,8 @@ Environment variables use the `OVERDUE__` prefix. Flag names are uppercased and 
 ```text
 --expected-every        -> OVERDUE__EXPECTED_EVERY
 --alerting-delay        -> OVERDUE__ALERTING_DELAY
---check-in-name         -> OVERDUE__CHECK_IN_NAME
+--name                  -> OVERDUE__NAME
+--path                  -> OVERDUE__PATH
 --public-url            -> OVERDUE__PUBLIC_URL
 --response-details      -> OVERDUE__RESPONSE_DETAILS
 ```
@@ -40,8 +41,8 @@ Dynamic notification flags include the target name:
 | `--listen-address`   | `OVERDUE__LISTEN_ADDRESS`   | `:8080`     | HTTP server listen address.                                                |
 | `--route-prefix`     | `OVERDUE__ROUTE_PREFIX`     | empty       | Path prefix to mount the service under.                                    |
 | `--public-url`       | `OVERDUE__PUBLIC_URL`       | empty       | Externally reachable base URL used in notification templates.              |
-| `--check-in-name`    | `OVERDUE__CHECK_IN_NAME`    | `default`   | Name of the check-in monitor used in notifications.                        |
-| `--check-in-path`    | `OVERDUE__CHECK_IN_PATH`    | `/check-in` | Route used to receive check-ins.                                           |
+| `--name`             | `OVERDUE__NAME`           | `default`   | Name of the check-in monitor used in notifications.                        |
+| `--path`             | `OVERDUE__PATH`           | `/checkin`  | Route used to receive check-ins.                                           |
 | `--expected-every`   | `OVERDUE__EXPECTED_EVERY`   | required    | Maximum time between check-ins.                                            |
 | `--alerting-delay`   | `OVERDUE__ALERTING_DELAY`   | required    | Extra time after the expected deadline before notifications fire.          |
 | `--start-active`     | `OVERDUE__START_ACTIVE`     | `false`     | Activate the monitor at startup instead of waiting for the first check-in. |
@@ -114,8 +115,8 @@ overdue \
 Routes become:
 
 ```text
-GET /overdue/check-in
-POST /overdue/check-in
+GET /overdue/checkin
+POST /overdue/checkin
 GET  /overdue/status
 GET  /overdue/version
 GET  /overdue/healthz
@@ -141,7 +142,7 @@ Use `--public-url` to expose externally reachable links to notification template
 ```sh
 overdue \
   --public-url=https://example.com/overdue \
-  --check-in-path=/check-in \
+  --path=/checkin \
   --expected-every=1m \
   --alerting-delay=10s
 ```
@@ -149,6 +150,7 @@ overdue \
 Templates can then use:
 
 ```gotemplate
+{{ .App.Version }}
 {{ .App.PublicURL }}
 {{ .App.CheckInURL }}
 {{ .App.StatusURL }}
@@ -158,13 +160,13 @@ With the example above, those values are:
 
 ```text
 .App.PublicURL  = https://example.com/overdue
-.App.CheckInURL = https://example.com/overdue/check-in
+.App.CheckInURL = https://example.com/overdue/checkin
 .App.StatusURL  = https://example.com/overdue/status
 ```
 
 ## Authentication
 
-Set `--auth-token` to require bearer-token auth for `/check-in` and `/status`.
+Set `--auth-token` to require bearer-token auth for `/checkin` and `/status`.
 
 ```sh
 overdue \
@@ -184,7 +186,7 @@ export OVERDUE__AUTH_TOKEN=0123456789abcdef0123456789abcdef
 Send authorized requests:
 
 ```sh
-curl -XPOST http://localhost:8080/check-in \
+curl -XPOST http://localhost:8080/checkin \
   -H 'Authorization: Bearer 0123456789abcdef0123456789abcdef'
 
 curl http://localhost:8080/status \

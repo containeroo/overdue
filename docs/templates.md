@@ -63,10 +63,10 @@ Notification templates receive a check-in lifecycle event.
 | `.Resolved`       | bool              | `true` for resolved notifications.                                                            |
 | `.Title`          | string            | Rendered notification title. Available in body and subject templates.                         |
 | `.Text`           | string            | Rendered notification text. Available in body templates.                                      |
-| `.App`            | struct            | Application link data derived from `--public-url`. Empty when no public URL is configured.    |
+| `.App`            | struct            | Application metadata and links. URL fields are empty when no public URL is configured.        |
 | `.CustomData`     | map[string]string | Target-local custom data from `--webhook.<name>.custom-data` or `--email.<name>.custom-data`. |
 
-`.App` contains `.App.PublicURL`, `.App.CheckInURL`, and `.App.StatusURL`. `--public-url` is the externally reachable base URL and may include a path prefix. `.App.CheckInURL` appends the configured check-in path, and `.App.StatusURL` appends `/status`.
+`.App` contains `.App.Version`, `.App.PublicURL`, `.App.CheckInURL`, and `.App.StatusURL`. `--public-url` is the externally reachable base URL and may include a path prefix. `.App.CheckInURL` appends the configured path, and `.App.StatusURL` appends `/status`.
 
 Custom data keys that are valid Go template identifiers can be read with dot notation, such as `.CustomData.channel`. Other keys can be read with `index`, such as `{{ index .CustomData "team-name" }}`.
 
@@ -76,6 +76,7 @@ Example:
 {{ .Title }}
 
 Check-in: {{ .CheckInName }}
+Version: {{ .App.Version }}
 Status: {{ .Status }}
 Channel: {{ .CustomData.channel | default "alertmanager" | withPrefix "#" }}
 Status URL: {{ .App.StatusURL }}

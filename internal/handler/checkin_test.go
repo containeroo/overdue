@@ -24,7 +24,7 @@ func TestAPI_CheckIn(t *testing.T) {
 		api, checkInMonitor := testAPI("secret", logger)
 		api.SetNowFn(func() time.Time { return now })
 
-		req := httptest.NewRequest(http.MethodPost, "/check-in", nil)
+		req := httptest.NewRequest(http.MethodPost, "/checkin", nil)
 		req.RemoteAddr = "192.0.2.10:12345"
 		req.Header.Set("Authorization", "Bearer secret")
 		rec := httptest.NewRecorder()
@@ -56,7 +56,7 @@ func TestAPI_CheckIn(t *testing.T) {
 		api, _ := testAPI("secret", testLogger())
 		api.SetNowFn(func() time.Time { return now })
 
-		req := httptest.NewRequest(http.MethodPost, "/check-in?details=true", nil)
+		req := httptest.NewRequest(http.MethodPost, "/checkin?details=true", nil)
 		req.Header.Set("Authorization", "Bearer secret")
 		rec := httptest.NewRecorder()
 
@@ -85,7 +85,7 @@ func TestAPI_CheckIn(t *testing.T) {
 		api.SetNowFn(func() time.Time { return now })
 		rec := httptest.NewRecorder()
 
-		api.CheckIn().ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/check-in", nil))
+		api.CheckIn().ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/checkin", nil))
 
 		require.Equal(t, http.StatusOK, rec.Code)
 		body := decodeJSONResponse(t, rec.Body.Bytes())
@@ -100,7 +100,7 @@ func TestAPI_CheckIn(t *testing.T) {
 		api, checkInMonitor := testAPI("secret", testLogger())
 		rec := httptest.NewRecorder()
 
-		api.CheckIn().ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/check-in", nil))
+		api.CheckIn().ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/checkin", nil))
 
 		require.Equal(t, http.StatusUnauthorized, rec.Code)
 		assert.JSONEq(t, `{"error":"unauthorized"}`, rec.Body.String())
