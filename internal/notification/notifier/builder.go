@@ -9,6 +9,7 @@ import (
 	"github.com/containeroo/overdue/internal/monitor"
 	"github.com/containeroo/overdue/internal/notification/delivery"
 	"github.com/containeroo/overdue/internal/notification/dispatch"
+	"github.com/containeroo/overdue/internal/notification/render"
 	"github.com/containeroo/overdue/internal/notification/targets"
 )
 
@@ -20,13 +21,13 @@ func New(templateFS fs.FS, cfg Config, logger *slog.Logger) (delivery.Notifier, 
 
 	notifiers := make([]delivery.Notifier, 0, len(cfg.Webhooks)+len(cfg.Emails))
 
-	webhooks, err := buildWebhookNotifiers(templateFS, cfg.Webhooks, logger)
+	webhooks, err := buildWebhookNotifiers(templateFS, cfg.App, cfg.Webhooks, logger)
 	if err != nil {
 		return nil, err
 	}
 	notifiers = append(notifiers, webhooks...)
 
-	emails, err := buildEmailNotifiers(templateFS, cfg.Emails, logger)
+	emails, err := buildEmailNotifiers(templateFS, cfg.App, cfg.Emails, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -60,10 +61,10 @@ func ValidateRuntimeTemplates(
 
 // validateTemplates renders configured notification templates with representative events.
 func validateTemplates(templateFS fs.FS, cfg Config, alertingEvent, resolvedEvent monitor.Event) error {
-	if err := validateWebhookTemplates(templateFS, cfg.Webhooks, alertingEvent, resolvedEvent); err != nil {
+	if err := validateWebhookTemplates(templateFS, cfg.App, cfg.Webhooks, alertingEvent, resolvedEvent); err != nil {
 		return err
 	}
-	if err := validateEmailTemplates(templateFS, cfg.Emails, alertingEvent, resolvedEvent); err != nil {
+	if err := validateEmailTemplates(templateFS, cfg.App, cfg.Emails, alertingEvent, resolvedEvent); err != nil {
 		return err
 	}
 	return nil
@@ -101,8 +102,9 @@ func templateValidationEvents(
 }
 
 // validateWebhookTemplates renders all webhook templates for configured webhook targets.
-func validateWebhookTemplates(templateFS fs.FS, configs []targets.WebhookConfig, alertingEvent, resolvedEvent monitor.Event) error {
+func validateWebhookTemplates(templateFS fs.FS, app render.AppData, configs []targets.WebhookConfig, alertingEvent, resolvedEvent monitor.Event) error {
 	for _, cfg := range configs {
+		cfg.ContentTemplates.App = app
 		renderer, err := targets.NewWebhookRenderer(templateFS, cfg.Template, cfg.ContentTemplates)
 		if err != nil {
 			return err
@@ -115,8 +117,9 @@ func validateWebhookTemplates(templateFS fs.FS, configs []targets.WebhookConfig,
 }
 
 // validateEmailTemplates renders all email body and subject templates for configured email targets.
-func validateEmailTemplates(templateFS fs.FS, configs []targets.EmailConfig, alertingEvent, resolvedEvent monitor.Event) error {
+func validateEmailTemplates(templateFS fs.FS, app render.AppData, configs []targets.EmailConfig, alertingEvent, resolvedEvent monitor.Event) error {
 	for _, cfg := range configs {
+		cfg.ContentTemplates.App = app
 		renderer, err := targets.NewEmailRenderer(
 			templateFS,
 			cfg.Template,
@@ -137,12 +140,14 @@ func validateEmailTemplates(templateFS fs.FS, configs []targets.EmailConfig, ale
 // buildWebhookNotifiers builds webhook notifiers from typed webhook configuration.
 func buildWebhookNotifiers(
 	templateFS fs.FS,
+	app render.AppData,
 	configs []targets.WebhookConfig,
 	logger *slog.Logger,
 ) (notifiers []delivery.Notifier, err error) {
 	notifiers = make([]delivery.Notifier, 0, len(configs))
 
 	for _, cfg := range configs {
+		cfg.ContentTemplates.App = app
 		renderer, err := targets.NewWebhookRenderer(templateFS, cfg.Template, cfg.ContentTemplates)
 		if err != nil {
 			return nil, err
@@ -161,12 +166,14 @@ func buildWebhookNotifiers(
 // buildEmailNotifiers builds email notifiers from typed email configuration.
 func buildEmailNotifiers(
 	templateFS fs.FS,
+	app render.AppData,
 	configs []targets.EmailConfig,
 	logger *slog.Logger,
 ) (notifiers []delivery.Notifier, err error) {
 	notifiers = make([]delivery.Notifier, 0, len(configs))
 
 	for _, cfg := range configs {
+		cfg.ContentTemplates.App = app
 		renderer, err := targets.NewEmailRenderer(
 			templateFS,
 			cfg.Template,

@@ -51,6 +51,35 @@ func TestParseArgs(t *testing.T) {
 		assert.Equal(t, logging.LogFormatText, cfg.LogFormat)
 	})
 
+	t.Run("builds app template data from public url", func(t *testing.T) {
+		t.Parallel()
+
+		cfg, err := ParseArgs([]string{
+			"--expected-every=10s",
+			"--alerting-delay=2s",
+			"--public-url=https://overdue.example.test/overdue/",
+			"--check-in-path=custom-check-in/",
+		}, "dev")
+
+		require.NoError(t, err)
+		assert.Equal(t, "https://overdue.example.test/overdue", cfg.PublicURL)
+		assert.Equal(t, "https://overdue.example.test/overdue", cfg.Notify.App.PublicURL)
+		assert.Equal(t, "https://overdue.example.test/overdue/custom-check-in", cfg.Notify.App.CheckInURL)
+		assert.Equal(t, "https://overdue.example.test/overdue/status", cfg.Notify.App.StatusURL)
+	})
+
+	t.Run("rejects invalid public url", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ParseArgs([]string{
+			"--expected-every=10s",
+			"--alerting-delay=2s",
+			"--public-url=not-a-url",
+		}, "dev")
+
+		require.Error(t, err)
+	})
+
 	t.Run("reads startup and response detail flags", func(t *testing.T) {
 		t.Parallel()
 

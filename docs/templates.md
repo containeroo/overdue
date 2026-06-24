@@ -63,7 +63,10 @@ Notification templates receive a check-in lifecycle event.
 | `.Resolved`       | bool              | `true` for resolved notifications.                                                            |
 | `.Title`          | string            | Rendered notification title. Available in body and subject templates.                         |
 | `.Text`           | string            | Rendered notification text. Available in body templates.                                      |
+| `.App`            | struct            | Application link data derived from `--public-url`. Empty when no public URL is configured.    |
 | `.CustomData`     | map[string]string | Target-local custom data from `--webhook.<name>.custom-data` or `--email.<name>.custom-data`. |
+
+`.App` contains `.App.PublicURL`, `.App.CheckInURL`, and `.App.StatusURL`. `--public-url` is the externally reachable base URL and may include a path prefix. `.App.CheckInURL` appends the configured check-in path, and `.App.StatusURL` appends `/status`.
 
 Custom data keys that are valid Go template identifiers can be read with dot notation, such as `.CustomData.channel`. Other keys can be read with `index`, such as `{{ index .CustomData "team-name" }}`.
 
@@ -74,7 +77,8 @@ Example:
 
 Check-in: {{ .CheckInName }}
 Status: {{ .Status }}
-Channel: {{ .CustomData.channel | default "#alertmanager" | withPrefix "#" }}
+Channel: {{ .CustomData.channel | default "alertmanager" | withPrefix "#" }}
+Status URL: {{ .App.StatusURL }}
 Expected by: {{ .ExpectedBy.Format "2006-01-02 15:04:05 MST" }}
 Alerting at: {{ .AlertingAt.Format "2006-01-02 15:04:05 MST" }}
 ```
@@ -100,7 +104,7 @@ The helpers can also be called without pipelines:
 
 ```gotemplate
 {{ json .Text }}
-{{ when "Resolved at" "Notified at" .Resolved }}
+{{ when .Resolved "Resolved at" "Notified at" }}
 {{ default "unknown" .CheckInName }}
 {{ withPrefix "#" .CustomData.channel }}
 {{ withSuffix "/" .CustomData.path }}
@@ -135,7 +139,10 @@ For Slack channel rendering, combine `default`, `withPrefix`, and `json`:
 
 ```gotemplate
 {
-  "channel": {{ .CustomData.channel | default "#alertmanager" | withPrefix "#" | json }},
-  "text": {{ .Text | json }}
+  "channel": {{ .CustomData.channel | default "alertmanager" | withPrefix "#" | json }},
+  "text": {{ .Text | json }},
+  "status_url": {{ .App.StatusURL | json }}
 }
 ```
+
+

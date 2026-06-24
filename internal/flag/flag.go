@@ -13,6 +13,7 @@ import (
 	"github.com/containeroo/httputils"
 	"github.com/containeroo/overdue/internal/logging"
 	"github.com/containeroo/overdue/internal/notification/notifier"
+	"github.com/containeroo/overdue/internal/notification/render"
 	"github.com/containeroo/overdue/internal/notification/targets"
 	"github.com/containeroo/tinyflags"
 )
@@ -26,6 +27,7 @@ const (
 type Config struct {
 	ListenAddr      string
 	RoutePrefix     string
+	PublicURL       string
 	CheckInName     string
 	CheckInPath     string
 	ExpectedEvery   time.Duration
@@ -60,6 +62,26 @@ func ParseArgs(args []string, version string) (Config, error) {
 		Finalize(httpprefix.NormalizeRoutePrefix).
 		FinalizeDefaultValue().
 		Placeholder("PATH").
+		Value()
+
+	tf.StringVar(&cfg.PublicURL, "public-url", "", "Externally reachable base URL used in notification templates").
+		Finalize(func(s string) string {
+			return strings.TrimRight(strings.TrimSpace(s), "/")
+		}).
+		FinalizeDefaultValue().
+		Placeholder("URL").
+		Validate(func(raw string) error {
+			if strings.TrimSpace(raw) == "" {
+				return nil
+			}
+
+			u, err := url.Parse(raw)
+			if err != nil || u.Scheme == "" || u.Host == "" {
+				return errors.New("public-url must be a valid absolute URL")
+			}
+
+			return nil
+		}).
 		Value()
 
 	tf.StringVar(&cfg.CheckInName, "check-in-name", "default", "Name of the check-in monitor used in notifications").
@@ -279,6 +301,7 @@ func ParseArgs(args []string, version string) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	notifyConfig.App = render.NewAppData(version, cfg.PublicURL, cfg.CheckInPath)
 
 	cfg.ListenAddr = (*listenAddr).String()
 	cfg.Notify = notifyConfig

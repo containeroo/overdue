@@ -15,12 +15,38 @@ const (
 	defaultResolvedText  string = `Check-in "{{ .CheckInName }}" is resolved:`
 )
 
+// AppData contains application links exposed to notification templates.
+type AppData struct {
+	Version    string
+	PublicURL  string
+	CheckInURL string
+	StatusURL  string
+}
+
+// NewAppData builds application template data from normalized application settings.
+func NewAppData(version, publicURL, checkInPath string) AppData {
+	app := AppData{
+		Version: version,
+	}
+
+	if publicURL == "" {
+		return app
+	}
+
+	app.PublicURL = publicURL
+	app.CheckInURL = publicURL + checkInPath
+	app.StatusURL = publicURL + "/status"
+
+	return app
+}
+
 // ContentTemplates configures title, text, body template data, and resolved event templates.
 type ContentTemplates struct {
 	Title         string
 	ResolvedTitle string
 	Text          string
 	ResolvedText  string
+	App           AppData
 	CustomData    map[string]string
 }
 
@@ -51,17 +77,20 @@ func (c ContentTemplates) Clone() ContentTemplates {
 // TemplateData is the value passed to notification templates.
 //
 // Event is embedded so existing templates can keep using fields such as
-// .CheckInName, .Title, and .Status directly. CustomData contains target-local
-// key/value pairs configured with custom-data flags.
+// .CheckInName, .Title, and .Status directly. App contains application links
+// configured with public-url. CustomData contains target-local key/value pairs
+// configured with custom-data flags.
 type TemplateData struct {
 	monitor.Event
+	App        AppData
 	CustomData map[string]string
 }
 
-// NewTemplateData builds template data from an event and target-local custom data.
-func NewTemplateData(event monitor.Event, customData map[string]string) TemplateData {
+// NewTemplateData builds template data from an event and target-local template data.
+func NewTemplateData(event monitor.Event, app AppData, customData map[string]string) TemplateData {
 	return TemplateData{
 		Event:      event,
+		App:        app,
 		CustomData: maps.Clone(customData),
 	}
 }

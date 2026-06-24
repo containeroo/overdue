@@ -295,6 +295,7 @@ func TestValidateWebhookTemplates(t *testing.T) {
 
 		err := validateWebhookTemplates(
 			testTemplateFS(),
+			render.AppData{},
 			[]targets.WebhookConfig{{Name: "ops", Template: "builtin:missing"}},
 			render.SampleAlertingEvent(),
 			render.SampleResolvedEvent(),
@@ -312,6 +313,7 @@ func TestValidateEmailTemplates(t *testing.T) {
 
 		err := validateEmailTemplates(
 			testTemplateFS(),
+			render.AppData{},
 			[]targets.EmailConfig{{Name: "primary", Template: "builtin:missing"}},
 			render.SampleAlertingEvent(),
 			render.SampleResolvedEvent(),
@@ -327,7 +329,7 @@ func TestBuildWebhookNotifiers(t *testing.T) {
 	t.Run("returns empty slice without configs", func(t *testing.T) {
 		t.Parallel()
 
-		notifiers, err := buildWebhookNotifiers(testTemplateFS(), nil, testLogger())
+		notifiers, err := buildWebhookNotifiers(testTemplateFS(), render.AppData{}, nil, testLogger())
 
 		require.NoError(t, err)
 		assert.Len(t, notifiers, 0)
@@ -336,7 +338,7 @@ func TestBuildWebhookNotifiers(t *testing.T) {
 	t.Run("returns renderer errors", func(t *testing.T) {
 		t.Parallel()
 
-		notifiers, err := buildWebhookNotifiers(testTemplateFS(), []targets.WebhookConfig{{Name: "ops", Template: "builtin:missing"}}, testLogger())
+		notifiers, err := buildWebhookNotifiers(testTemplateFS(), render.AppData{}, []targets.WebhookConfig{{Name: "ops", Template: "builtin:missing"}}, testLogger())
 
 		require.Error(t, err)
 		assert.Nil(t, notifiers)
@@ -349,7 +351,7 @@ func TestBuildEmailNotifiers(t *testing.T) {
 	t.Run("returns empty slice without configs", func(t *testing.T) {
 		t.Parallel()
 
-		notifiers, err := buildEmailNotifiers(testTemplateFS(), nil, testLogger())
+		notifiers, err := buildEmailNotifiers(testTemplateFS(), render.AppData{}, nil, testLogger())
 
 		require.NoError(t, err)
 		assert.Len(t, notifiers, 0)
@@ -358,7 +360,7 @@ func TestBuildEmailNotifiers(t *testing.T) {
 	t.Run("returns renderer errors", func(t *testing.T) {
 		t.Parallel()
 
-		notifiers, err := buildEmailNotifiers(testTemplateFS(), []targets.EmailConfig{{Name: "primary", Template: "builtin:missing"}}, testLogger())
+		notifiers, err := buildEmailNotifiers(testTemplateFS(), render.AppData{}, []targets.EmailConfig{{Name: "primary", Template: "builtin:missing"}}, testLogger())
 
 		require.Error(t, err)
 		assert.Nil(t, notifiers)

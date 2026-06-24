@@ -21,6 +21,7 @@ type ContentRenderer struct {
 	resolvedTitle *template.Template
 	text          *template.Template
 	resolvedText  *template.Template
+	app           AppData
 	customData    map[string]string
 }
 
@@ -63,6 +64,7 @@ func NewContentRenderer(templateFS fs.FS, source string, content ContentTemplate
 		resolvedTitle: resolvedTitle,
 		text:          text,
 		resolvedText:  resolvedText,
+		app:           content.App,
 		customData:    content.CustomData,
 	}, nil
 }
@@ -143,7 +145,7 @@ func (r ContentRenderer) RenderBody(event monitor.Event) (text string, err error
 
 // TemplateData returns the value passed to notification templates.
 func (r ContentRenderer) TemplateData(event monitor.Event) TemplateData {
-	return NewTemplateData(event, r.customData)
+	return NewTemplateData(event, r.app, r.customData)
 }
 
 // withDefaults makes the zero value usable for tests and defensive construction.

@@ -99,6 +99,7 @@ Core settings:
 | -------------------- | --------------------------- | ----------- | -------------------------------------------------------------------------- |
 | `--listen-address`   | `OVERDUE__LISTEN_ADDRESS`   | `:8080`     | HTTP server listen address.                                                |
 | `--route-prefix`     | `OVERDUE__ROUTE_PREFIX`     | empty       | Path prefix to mount the service under.                                    |
+| `--public-url`       | `OVERDUE__PUBLIC_URL`       | empty       | Externally reachable base URL used in notification templates.              |
 | `--check-in-name`    | `OVERDUE__CHECK_IN_NAME`    | `default`   | Name of the check-in monitor used in notifications.                        |
 | `--check-in-path`    | `OVERDUE__CHECK_IN_PATH`    | `/check-in` | Route used to receive check-ins.                                           |
 | `--start-active`     | `OVERDUE__START_ACTIVE`     | `false`     | Activate the monitor at startup instead of waiting for the first check-in. |
@@ -112,6 +113,7 @@ Environment variables use the `OVERDUE__` prefix. Flag names are uppercased and 
 Dynamic notification flags include the target name:
 
 ```text
+--public-url                      -> OVERDUE__PUBLIC_URL
 --webhook.ops.url                  -> OVERDUE__WEBHOOK_OPS_URL
 --webhook.ops.method               -> OVERDUE__WEBHOOK_OPS_METHOD
 --webhook.ops.custom-data          -> OVERDUE__WEBHOOK_OPS_CUSTOM_DATA
@@ -158,7 +160,7 @@ Custom templates can be mounted into the container and referenced by path:
 -e OVERDUE__WEBHOOK_OPS_TEMPLATE=/etc/overdue/slack.tmpl
 ```
 
-Webhook templates must render valid JSON. Email templates may render text or HTML.
+Webhook templates must render valid JSON. Email templates may render text or HTML. When `--public-url` is configured, templates can use `.App.PublicURL`, `.App.CheckInURL`, and `.App.StatusURL`.
 
 See [docs/templates.md](docs/templates.md) for built-in templates, template data, and helper functions.
 
@@ -187,3 +189,5 @@ See [docs/api.md](docs/api.md) for response examples and route prefix details.
 ## License
 
 This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
+
+

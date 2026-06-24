@@ -23,6 +23,8 @@ And this creates an email target named `primary`:
 
 If no notification targets are configured, Overdue still runs and records status, but sends no notifications.
 
+Set `--public-url` when notification templates should include externally reachable Overdue links. The value is exposed as `.App.PublicURL`; `.App.CheckInURL` and `.App.StatusURL` are derived from it.
+
 ## Environment variables
 
 Dynamic notification flags include the target name.
@@ -269,3 +271,5 @@ For fan-out delivery, successful targets are not called again on the next retry.
 Retry backoff starts at `1s` and is capped at `1m`.
 
 Both alerting and resolved notifications keep their `.NotificationID` across retries.
+
+

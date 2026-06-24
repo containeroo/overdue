@@ -157,7 +157,6 @@ func TestNotifyConfigFromDynamicGroups(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), `invalid "--email.ops.headers"`)
 	})
-
 }
 
 func TestWebhookConfigsFromDynamicGroupDefaults(t *testing.T) {
@@ -322,15 +321,6 @@ func notifyTestFlagSet(t *testing.T, args []string) *tinyflags.FlagSet {
 
 	require.NoError(t, fs.Parse(args))
 	return fs
-}
-
-func notifyTestContentTemplates(prefix string) render.ContentTemplates {
-	return render.ContentTemplates{
-		Title:         prefix + " title",
-		ResolvedTitle: prefix + " resolved title",
-		Text:          prefix + " text",
-		ResolvedText:  prefix + " resolved text",
-	}
 }
 
 func notifyTestDefaultContentTemplates() render.ContentTemplates {

@@ -46,6 +46,7 @@ func Run(
 		"check-in receiver configured",
 		"listenAddr", flags.ListenAddr,
 		"routePrefix", flags.RoutePrefix,
+		"publicURL", flags.PublicURL,
 		"checkInName", flags.CheckInName,
 		"checkInPath", flags.CheckInPath,
 		"expectedEvery", flags.ExpectedEvery.String(),

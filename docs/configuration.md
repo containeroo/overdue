@@ -10,6 +10,7 @@ Environment variables use the `OVERDUE__` prefix. Flag names are uppercased and 
 --expected-every        -> OVERDUE__EXPECTED_EVERY
 --alerting-delay        -> OVERDUE__ALERTING_DELAY
 --check-in-name         -> OVERDUE__CHECK_IN_NAME
+--public-url            -> OVERDUE__PUBLIC_URL
 --response-details      -> OVERDUE__RESPONSE_DETAILS
 ```
 
@@ -38,6 +39,7 @@ Dynamic notification flags include the target name:
 | -------------------- | --------------------------- | ----------- | -------------------------------------------------------------------------- |
 | `--listen-address`   | `OVERDUE__LISTEN_ADDRESS`   | `:8080`     | HTTP server listen address.                                                |
 | `--route-prefix`     | `OVERDUE__ROUTE_PREFIX`     | empty       | Path prefix to mount the service under.                                    |
+| `--public-url`       | `OVERDUE__PUBLIC_URL`       | empty       | Externally reachable base URL used in notification templates.              |
 | `--check-in-name`    | `OVERDUE__CHECK_IN_NAME`    | `default`   | Name of the check-in monitor used in notifications.                        |
 | `--check-in-path`    | `OVERDUE__CHECK_IN_PATH`    | `/check-in` | Route used to receive check-ins.                                           |
 | `--expected-every`   | `OVERDUE__EXPECTED_EVERY`   | required    | Maximum time between check-ins.                                            |
@@ -132,6 +134,34 @@ This becomes:
 /overdue
 ```
 
+## Public URL
+
+Use `--public-url` to expose externally reachable links to notification templates. The value may include an ingress or reverse-proxy path prefix. It is not derived from `--listen-address`, because listen addresses such as `:8080` or `0.0.0.0:8080` are usually not public URLs.
+
+```sh
+overdue \
+  --public-url=https://example.com/overdue \
+  --check-in-path=/check-in \
+  --expected-every=1m \
+  --alerting-delay=10s
+```
+
+Templates can then use:
+
+```gotemplate
+{{ .App.PublicURL }}
+{{ .App.CheckInURL }}
+{{ .App.StatusURL }}
+```
+
+With the example above, those values are:
+
+```text
+.App.PublicURL  = https://example.com/overdue
+.App.CheckInURL = https://example.com/overdue/check-in
+.App.StatusURL  = https://example.com/overdue/status
+```
+
 ## Authentication
 
 Set `--auth-token` to require bearer-token auth for `/check-in` and `/status`.
@@ -187,3 +217,5 @@ Use it through the environment when possible:
 ```sh
 export OVERDUE__AUTH_TOKEN="$(openssl rand -hex 32)"
 ```
+
+
