@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containeroo/overdue/internal/notification/webhook"
 	"github.com/containeroo/tinyflags"
 	"github.com/stretchr/testify/require"
 )
@@ -31,22 +30,19 @@ func notificationTestFlagSet(t *testing.T, args []string) *tinyflags.FlagSet {
 	webhookGroup.Duration("timeout", 10*time.Second, "HTTP timeout")
 	webhookGroup.Bool("skip-insecure", false, "Skip TLS certificate verification")
 	webhookGroup.Bool("send-resolved", false, "Send resolved notifications")
-	webhookGroup.String("title-template", `[OVERDUE] Event Notification`, "Title template")
-	webhookGroup.String("resolved-title-template", `[RESOLVED] [OVERDUE] Event Notification`, "Resolved title template")
-	webhookGroup.String("text-template", `Check-in "{{ .CheckInName }}" is overdue:`, "Text template")
-	webhookGroup.String("resolved-text-template", `Check-in "{{ .CheckInName }}" is resolved:`, "Resolved text template")
+	webhookGroup.String("subject-template", defaultSubjectTemplate, "Subject template")
 	webhookGroup.StringSlice("headers", nil, "HTTP headers")
 	webhookGroup.StringSlice("custom-data", nil, "Custom data")
 	webhookGroup.String("template", "", "Body template")
 	tinyflags.DynamicEnum(
 		webhookGroup,
 		"log-response",
-		webhook.LogResponseSummary,
+		LogResponseSummary,
 		"Webhook response logging",
-		webhook.LogResponseSummary,
-		webhook.LogResponseBody,
-		webhook.LogResponseFull,
-		webhook.LogResponseNone,
+		LogResponseSummary,
+		LogResponseBody,
+		LogResponseFull,
+		LogResponseNone,
 	)
 	webhookGroup.Int("response-body-limit", 4096, "Response body limit")
 
@@ -57,12 +53,7 @@ func notificationTestFlagSet(t *testing.T, args []string) *tinyflags.FlagSet {
 	emailGroup.String("smtp-pass", "", "SMTP password")
 	emailGroup.Bool("smtp-skip-insecure", false, "Skip SMTP TLS certificate verification")
 	emailGroup.Bool("send-resolved", false, "Send resolved notifications")
-	emailGroup.String("subject-template", "{{ .Title }}", "Subject template")
-	emailGroup.String("resolved-subject-template", "{{ .Title }}", "Resolved subject template")
-	emailGroup.String("title-template", `[OVERDUE] Event Notification`, "Title template")
-	emailGroup.String("resolved-title-template", `[RESOLVED] [OVERDUE] Event Notification`, "Resolved title template")
-	emailGroup.String("text-template", `Check-in "{{ .CheckInName }}" is overdue:`, "Text template")
-	emailGroup.String("resolved-text-template", `Check-in "{{ .CheckInName }}" is resolved:`, "Resolved text template")
+	emailGroup.String("subject-template", defaultSubjectTemplate, "Subject template")
 	emailGroup.String("from", "", "Sender")
 	emailGroup.StringSlice("to", []string{}, "Recipients")
 	emailGroup.StringSlice("headers", nil, "Email headers")

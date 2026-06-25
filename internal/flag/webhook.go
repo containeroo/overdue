@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/containeroo/overdue/internal/config"
-	"github.com/containeroo/overdue/internal/notification/webhook"
+	"github.com/containeroo/overdue/internal/utils"
 	"github.com/containeroo/tinyflags"
 )
 
@@ -36,18 +36,14 @@ func registerWebhookFlags(tf *tinyflags.FlagSet) {
 	webhookGroup.Bool("skip-insecure", false, "Skip TLS certificate verification")
 	webhookGroup.Bool("send-resolved", false, "Send a resolved webhook notification when check-ins resume after alerting")
 
-	webhookGroup.String("title-template", `[OVERDUE] Event Notification`, "Template for overdue webhook title")
-	webhookGroup.String("resolved-title-template", `[RESOLVED] [OVERDUE] Event Notification`, "Template for resolved webhook title")
-
-	webhookGroup.String("text-template", `Check-in "{{ .CheckInName }}" is overdue:`, "Template for overdue webhook text")
-	webhookGroup.String("resolved-text-template", `Check-in "{{ .CheckInName }}" is resolved:`, "Template for resolved webhook text")
+	webhookGroup.String("subject-template", config.DefaultSubjectTemplate(), "Template for webhook title or subject")
 
 	webhookGroup.StringSlice("headers", nil, "HTTP headers in KEY=VALUE format").
 		Validate(validateHeader).
 		Placeholder("KEY=VALUE")
 
 	webhookGroup.StringSlice("custom-data", nil, "Custom webhook template data in KEY=VALUE format").
-		Validate(config.ValidateKeyValue).
+		Validate(utils.ValidateKeyValue).
 		Placeholder("KEY=VALUE")
 
 	webhookGroup.String("template", "", "Path or builtin:<name> template for webhook JSON body").
@@ -57,12 +53,12 @@ func registerWebhookFlags(tf *tinyflags.FlagSet) {
 	tinyflags.DynamicEnum(
 		webhookGroup,
 		"log-response",
-		webhook.LogResponseSummary,
+		config.LogResponseSummary,
 		"Webhook response logging: summary, body, full, or none",
-		webhook.LogResponseSummary,
-		webhook.LogResponseBody,
-		webhook.LogResponseFull,
-		webhook.LogResponseNone,
+		config.LogResponseSummary,
+		config.LogResponseBody,
+		config.LogResponseFull,
+		config.LogResponseNone,
 	).Placeholder("MODE")
 
 	webhookGroup.Int("response-body-limit", 4096, "Maximum webhook response body bytes to read for logs and errors").

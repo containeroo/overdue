@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/target"
 	"github.com/containeroo/overdue/internal/utils"
 )
 
@@ -51,39 +50,18 @@ type snapshotResponse struct {
 
 // checkInDetailsResponse is the detailed timing JSON payload for status and check-in responses.
 type checkInDetailsResponse struct {
-	Status        checkInResponseStatus       `json:"status,omitempty"`
-	CheckInName   string                      `json:"checkInName"`
-	Phase         monitor.Phase               `json:"phase"`
-	LastCheckIn   *time.Time                  `json:"lastCheckIn,omitempty"`
-	ExpectedBy    *time.Time                  `json:"expectedBy,omitempty"`
-	ExpectedEvery string                      `json:"expectedEvery,omitempty"`
-	OverdueSince  *time.Time                  `json:"overdueSince,omitempty"`
-	OverdueFor    string                      `json:"overdueFor,omitempty"`
-	AlertingAt    *time.Time                  `json:"alertingAt,omitempty"`
-	AlertingDelay string                      `json:"alertingDelay,omitempty"`
-	AlertingAfter string                      `json:"alertingAfter,omitempty"`
-	AlertingFor   string                      `json:"alertingFor,omitempty"`
-	Notifications *notificationStatusResponse `json:"notifications,omitempty"`
-}
-
-// notificationStatusResponse is the aggregate notification delivery status.
-type notificationStatusResponse struct {
-	Status    target.DeliveryStatus        `json:"status"`
-	Total     int                          `json:"total"`
-	Delivered int                          `json:"delivered"`
-	Failed    int                          `json:"failed"`
-	Pending   int                          `json:"pending"`
-	Skipped   int                          `json:"skipped"`
-	Targets   []notificationTargetResponse `json:"targets"`
-}
-
-// notificationTargetResponse is a notification target.
-type notificationTargetResponse struct {
-	Type            string                `json:"type"`
-	Name            string                `json:"name"`
-	Status          target.DeliveryStatus `json:"status"`
-	LastAttemptAt   *time.Time            `json:"lastAttemptAt,omitempty"`
-	LastDeliveredAt *time.Time            `json:"lastDeliveredAt,omitempty"`
+	Status        checkInResponseStatus `json:"status,omitempty"`
+	CheckInName   string                `json:"checkInName"`
+	Phase         monitor.Phase         `json:"phase"`
+	LastCheckIn   *time.Time            `json:"lastCheckIn,omitempty"`
+	ExpectedBy    *time.Time            `json:"expectedBy,omitempty"`
+	ExpectedEvery string                `json:"expectedEvery,omitempty"`
+	OverdueSince  *time.Time            `json:"overdueSince,omitempty"`
+	OverdueFor    string                `json:"overdueFor,omitempty"`
+	AlertingAt    *time.Time            `json:"alertingAt,omitempty"`
+	AlertingDelay string                `json:"alertingDelay,omitempty"`
+	AlertingAfter string                `json:"alertingAfter,omitempty"`
+	AlertingFor   string                `json:"alertingFor,omitempty"`
 }
 
 // respondText writes a plain text response.
@@ -171,28 +149,4 @@ func newCheckInDetailsResponse(checkInName string, snapshot monitor.Snapshot, no
 	}
 
 	return response
-}
-
-// newNotificationStatusResponse builds a notification delivery status response.
-func newNotificationStatusResponse(status target.Status) notificationStatusResponse {
-	targets := make([]notificationTargetResponse, 0, len(status.Targets))
-	for _, target := range status.Targets {
-		targets = append(targets, notificationTargetResponse{
-			Type:            target.Type,
-			Name:            target.Name,
-			Status:          target.Status,
-			LastAttemptAt:   target.LastAttemptAt,
-			LastDeliveredAt: target.LastDeliveredAt,
-		})
-	}
-
-	return notificationStatusResponse{
-		Status:    status.Status,
-		Total:     status.Total,
-		Delivered: status.Delivered,
-		Failed:    status.Failed,
-		Pending:   status.Pending,
-		Skipped:   status.Skipped,
-		Targets:   targets,
-	}
 }

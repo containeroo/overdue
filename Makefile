@@ -6,9 +6,9 @@ TEST_FLAGS ?= -covermode=atomic -count=1 -parallel=4 -timeout=5m
 
 BASE_URL ?= http://localhost:8080
 ROUTE_PREFIX ?=
-CHECKIN_CHECKIN_PATH ?= /checkin
+CHECKIN_PATH ?= /checkin
 AUTH_TOKEN ?=
-RUN_ARGS ?= --expected-every=5s --overdue-delay=3s
+RUN_ARGS ?= --expected-every=5s --alerting-delay=3s
 
 CURL ?= curl
 CURL_FLAGS ?= --silent --show-error
@@ -94,6 +94,8 @@ run-test: ## Run a local instance with example webhook and email settings.
 		--webhook.ops.url=https://slack.com/api/chat.postMessage \
 		--webhook.ops.headers="Authorization=Bearer $${SLACK_TOKEN}" \
 		--webhook.ops.template=builtin:slack-chat-post-message \
+		--webhook.ops.subject-template='{{ if .Resolved }}[RESOLVED]{{ else }}[OVERDUE]{{ end }} Check-in {{ .CheckInName }}' \
+		--webhook.ops.custom-data=channel="$${SLACK_CHANNEL:-alertmanager}" \
 		--webhook.ops.send-resolved \
 		--email.ops.smtp-host=smtp.gmail.com \
 		--email.ops.smtp-port=587 \
@@ -102,9 +104,8 @@ run-test: ## Run a local instance with example webhook and email settings.
 		--email.ops.from="$${EMAIL_FROM}" \
 		--email.ops.to="$${EMAIL_TO}" \
 		--email.ops.template=builtin:email-html \
-		--email.ops.send-resolved \
-		--email.ops.subject-template='{{ .Title }}' \
-		--email.ops.resolved-subject-template='{{ .Title }}'
+		--email.ops.subject-template='{{ if .Resolved }}[RESOLVED]{{ else }}[OVERDUE]{{ end }} Check-in {{ .CheckInName }}' \
+		--email.ops.send-resolved
 
 ##@ Endpoint smoke tests
 
@@ -165,5 +166,3 @@ endpoints-details: ## Test all local endpoints. Example: make endpoints-details 
 .PHONY: help
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
-
-

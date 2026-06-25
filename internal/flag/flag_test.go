@@ -59,9 +59,9 @@ func TestParseArgs(t *testing.T) {
 		}, "v0.0.7")
 
 		require.NoError(t, err)
-		assert.Equal(t, "https://overdue.example.test/overdue", cfg.PublicURL)
+		assert.Equal(t, "https://overdue.example.test/overdue", cfg.SiteRoot)
 		assert.Equal(t, "v0.0.7", cfg.Notifications.App.Version)
-		assert.Equal(t, "https://overdue.example.test/overdue", cfg.Notifications.App.PublicURL)
+		assert.Equal(t, "https://overdue.example.test/overdue", cfg.Notifications.App.SiteRoot)
 		assert.Equal(t, "https://overdue.example.test/overdue/custom-check-in", cfg.Notifications.App.CheckInURL)
 		assert.Equal(t, "https://overdue.example.test/overdue/status", cfg.Notifications.App.StatusURL)
 	})

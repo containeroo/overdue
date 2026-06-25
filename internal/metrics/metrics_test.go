@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/target"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -87,23 +86,6 @@ func TestRegistry_IncCheckInReceived(t *testing.T) {
 	})
 }
 
-func TestRegistry_SetNotificationStatus(t *testing.T) {
-	t.Parallel()
-	t.Run("updates per target notification status", func(t *testing.T) {
-		t.Parallel()
-
-		registry := NewRegistry()
-		registry.SetNotificationStatus(target.Status{Targets: []target.TargetStatus{
-			{Type: "webhook", Name: "ops", Status: target.StatusDelivered},
-			{Type: "email", Name: "primary", Status: target.StatusFailed},
-		}})
-
-		body := scrapeMetrics(t, registry)
-		assert.Contains(t, body, `overdue_notification_last_status{target="ops",type="webhook"} 0`)
-		assert.Contains(t, body, `overdue_notification_last_status{target="primary",type="email"} 1`)
-	})
-}
-
 func TestRegistry_setActiveMonitorPhase(t *testing.T) {
 	t.Parallel()
 	t.Run("sets only current phase active", func(t *testing.T) {
@@ -132,24 +114,6 @@ func TestRegistry_setActiveMonitorPhase(t *testing.T) {
 		assert.Contains(t, body, `overdue_monitor_phase{check_in="prometheus",phase="awaiting"} 0`)
 		assert.Contains(t, body, `overdue_monitor_phase{check_in="prometheus",phase="overdue"} 0`)
 		assert.Contains(t, body, `overdue_monitor_phase{check_in="prometheus",phase="alerting"} 0`)
-	})
-}
-
-func TestNotificationStatusValue(t *testing.T) {
-	t.Parallel()
-	t.Run("maps successful statuses", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, NotificationSuccess, notificationStatusValue(target.StatusDelivered))
-		assert.Equal(t, NotificationSuccess, notificationStatusValue(target.StatusSkipped))
-	})
-
-	t.Run("maps pending or failed statuses to error", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, NotificationError, notificationStatusValue(target.StatusFailed))
-		assert.Equal(t, NotificationError, notificationStatusValue(target.StatusPending))
-		assert.Equal(t, NotificationError, notificationStatusValue(target.StatusIdle))
 	})
 }
 

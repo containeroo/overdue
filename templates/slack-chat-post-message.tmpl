@@ -1,15 +1,15 @@
 {{/* Slack chat.postMessage payload */}}
 {
-  "channel": {{ .CustomData.channel | default "alertmanager" | withPrefix "#" | json }},
+  "channel": {{ index .CustomData "channel" | default "alertmanager" | withPrefix "#" | json }},
   "charset": "utf-8",
-  "text": {{ .Title | json }},
+  "text": {{ .Subject | json }},
   "attachments": [
     {
-      "color": {{ when .Resolved "good" "#A30200" | json }},
+      "color": {{ if .Resolved }}"good"{{ else }}"#A30200"{{ end }},
       "fallback": {{ print
-        .Title " "
-        .Text " "
+        .Subject " "
         "Status: " .Status ". "
+        "Check-in: " .CheckInName ". "
         "Expected every " (.ExpectedBy.Sub .LastCheckIn) ", "
         "alerting delay " (.AlertingAt.Sub .ExpectedBy) ", "
         "alerting at " (.AlertingAt.Format "2006-01-02T15:04:05Z07:00") "."
@@ -18,7 +18,11 @@
       }},
       "mrkdwn_in": ["text"],
       "text": {{ print
-        .Text "\n\n"
+        (when .Resolved
+          (printf "Check-in `%s` is healthy again." .CheckInName)
+          (printf "Check-in `%s` did not arrive before the alerting deadline." .CheckInName)
+        )
+        "\n\n"
 
         "*Schedule*\n"
         "• Check-in: `" .CheckInName "`\n"
@@ -29,6 +33,7 @@
         "*Timeline*\n"
         "• Last check-in: `" (.LastCheckIn.Format "2006-01-02 15:04:05 MST") "`\n"
         "• Expected by: `" (.ExpectedBy.Format "2006-01-02 15:04:05 MST") "`\n"
+        "• Overdue since: `" (.OverdueSince.Format "2006-01-02 15:04:05 MST") "`\n"
         "• Alerting at: `" (.AlertingAt.Format "2006-01-02 15:04:05 MST") "`\n"
         "• " (when .Resolved "Resolved at" "Notified at") ": `" (.Now.Format "2006-01-02 15:04:05 MST") "`"
         (optional "\n\n*Status URL:* %s" .App.StatusURL)
@@ -40,3 +45,4 @@
     }
   ]
 }
+

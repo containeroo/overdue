@@ -108,7 +108,7 @@ func validateAuthToken(token string) error {
 	return nil
 }
 
-// validateHeader validates one KEY=VALUE-style HTTP or email header flag value.
+// validateHeader validates one HTTP or email header flag value.
 func validateHeader(raw string) error {
 	_, err := httputils.ParseHeaders(raw, false)
 	return err

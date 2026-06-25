@@ -2,14 +2,12 @@ module github.com/containeroo/overdue
 
 go 1.26
 
-toolchain go1.26.4
-
 require (
 	github.com/containeroo/httpgrace v0.1.2
 	github.com/containeroo/httpprefix v0.0.2
 	github.com/containeroo/httputils v0.0.1
+	github.com/containeroo/notifykit v0.0.0-20260625201327-9cca64bc93eb
 	github.com/containeroo/tinyflags v0.0.79
-	github.com/containeroo/tmplfuncs v0.0.0-20260624142406-968d5442fbec
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
 )

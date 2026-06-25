@@ -5,16 +5,8 @@ import (
 	"time"
 
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/target"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-)
-
-const (
-	// NotificationSuccess means the last notification attempt succeeded.
-	NotificationSuccess float64 = 0
-	// NotificationError means the last notification attempt failed or is still pending.
-	NotificationError float64 = 1
 )
 
 const (
@@ -37,7 +29,6 @@ type Registry struct {
 	monitorLastCheckInTimestamp *prometheus.GaugeVec
 	monitorExpectedByTimestamp  *prometheus.GaugeVec
 	monitorAlertingAtTimestamp  *prometheus.GaugeVec
-	notificationLastStatus      *prometheus.GaugeVec
 }
 
 // NewRegistry builds a new Prometheus metrics registry.
@@ -77,13 +68,6 @@ func NewRegistry() *Registry {
 		},
 		[]string{"check_in"},
 	)
-	notificationLastStatus := prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "overdue_notification_last_status",
-			Help: "Status of the last notification attempt per target (0 = success, 1 = error).",
-		},
-		[]string{"type", "target"},
-	)
 
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(
@@ -92,7 +76,6 @@ func NewRegistry() *Registry {
 		monitorLastCheckInTimestamp,
 		monitorExpectedByTimestamp,
 		monitorAlertingAtTimestamp,
-		notificationLastStatus,
 	)
 
 	return &Registry{
@@ -102,7 +85,6 @@ func NewRegistry() *Registry {
 		monitorLastCheckInTimestamp: monitorLastCheckInTimestamp,
 		monitorExpectedByTimestamp:  monitorExpectedByTimestamp,
 		monitorAlertingAtTimestamp:  monitorAlertingAtTimestamp,
-		notificationLastStatus:      notificationLastStatus,
 	}
 }
 
@@ -119,13 +101,6 @@ func (r *Registry) IncCheckInReceived(checkIn string) {
 	r.checkInsReceivedTotal.WithLabelValues(checkIn).Inc()
 }
 
-// SetNotificationStatus updates per-target notification delivery status gauges.
-func (r *Registry) SetNotificationStatus(status target.Status) {
-	for _, target := range status.Targets {
-		r.notificationLastStatus.WithLabelValues(target.Type, target.Name).Set(notificationStatusValue(target.Status))
-	}
-}
-
 // Metrics returns the Prometheus metrics handler.
 func (r *Registry) Metrics() http.Handler {
 	return promhttp.HandlerFor(r.registry, promhttp.HandlerOpts{})
@@ -140,16 +115,6 @@ func (r *Registry) setActiveMonitorPhase(checkIn string, phase monitor.Phase) {
 			value = monitorPhaseActive
 		}
 		r.monitorPhase.WithLabelValues(checkIn, string(known)).Set(value)
-	}
-}
-
-// notificationStatusValue converts a target status to its metric value.
-func notificationStatusValue(status target.DeliveryStatus) float64 {
-	switch status {
-	case target.StatusDelivered, target.StatusSkipped:
-		return NotificationSuccess
-	default:
-		return NotificationError
 	}
 }
 

@@ -143,25 +143,23 @@ func TestRun(t *testing.T) {
 		assert.Empty(t, stderr.String())
 	})
 
-	t.Run("returns notifier setup errors", func(t *testing.T) {
+	t.Run("returns invalid template errors", func(t *testing.T) {
 		t.Parallel()
 
 		var stdout bytes.Buffer
 		var stderr bytes.Buffer
-		templateFS := &failAfterFirstOpenFS{
-			FS:       testTemplateFS(),
-			filename: "slack-incoming-webhook.tmpl",
-		}
 
 		err := Run(context.Background(), "dev", "none", []string{
 			"--expected-every=10s",
 			"--alerting-delay=2s",
 			"--webhook.ops.url=https://example.test/webhook",
-			"--webhook.ops.template=builtin:slack-incoming-webhook",
-		}, &stdout, &stderr, templateFS)
+			"--webhook.ops.template=builtin:not-json",
+		}, &stdout, &stderr, fstest.MapFS{
+			"not-json.tmpl": {Data: []byte(`not json`)},
+		})
 
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), `read built-in template "slack-incoming-webhook"`)
+		assert.Contains(t, err.Error(), `result is not valid JSON`)
 		assert.NotEmpty(t, stdout.String())
 		assert.Empty(t, stderr.String())
 	})
@@ -239,10 +237,10 @@ func testTemplateFS() fstest.MapFS {
 			Data: []byte(`{{ .Title }}`),
 		},
 		"slack-incoming-webhook.tmpl": {
-			Data: []byte(`{"channel":{{ json (.CustomData.channel | default "#alertmanager") }},"text":{{ json .Text }}}`),
+			Data: []byte(`{"channel":{{ index .CustomData "channel" | default "alertmanager" | withPrefix "#" | json }},"text":{{ json .Text }}}`),
 		},
 		"slack-chat-post-message.tmpl": {
-			Data: []byte(`{"channel":{{ json (.CustomData.channel | default "#alertmanager") }},"text":{{ json .Text }}}`),
+			Data: []byte(`{"channel":{{ index .CustomData "channel" | default "alertmanager" | withPrefix "#" | json }},"text":{{ json .Text }}}`),
 		},
 	}
 }

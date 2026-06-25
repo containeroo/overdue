@@ -23,7 +23,7 @@ func registerAppFlags(tf *tinyflags.FlagSet, cfg *config.Config) {
 		Placeholder("PATH").
 		Value()
 
-	tf.StringVar(&cfg.PublicURL, "public-url", "", "Externally reachable base URL used in notification templates").
+	tf.StringVar(&cfg.SiteRoot, "public-url", "", "Externally reachable base URL used in notification templates").
 		Finalize(normalizePublicURL).
 		FinalizeDefaultValue().
 		Placeholder("URL").

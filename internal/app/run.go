@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"github.com/containeroo/httpgrace/server"
+	kit "github.com/containeroo/notifykit/notify"
 	"github.com/containeroo/overdue/internal/flag"
 	"github.com/containeroo/overdue/internal/handler"
 	"github.com/containeroo/overdue/internal/logging"
 	"github.com/containeroo/overdue/internal/metrics"
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification"
+	"github.com/containeroo/overdue/internal/notify"
 	"github.com/containeroo/overdue/internal/routes"
 	"github.com/containeroo/overdue/internal/scheduler"
 	"github.com/containeroo/overdue/internal/service"
@@ -44,9 +45,9 @@ func Run(
 
 	setupLog.Info(
 		"check-in receiver configured",
-		"listenAddr", flags.ListenAddr,
+		"listenAddr", flags.ListenAddr.String(),
 		"routePrefix", flags.RoutePrefix,
-		"publicURL", flags.PublicURL,
+		"siteRoot", flags.SiteRoot,
 		"name", flags.CheckIn.Name,
 		"path", flags.CheckIn.Path,
 		"expectedEvery", flags.CheckIn.ExpectedEvery.String(),
@@ -54,22 +55,11 @@ func Run(
 		"startActive", flags.CheckIn.StartActive,
 		"responseDetails", flags.ResponseDetails,
 		"initialPhase", monitor.PhaseScheduled,
+		"notifications", len(flags.Notifications.Webhooks)+len(flags.Notifications.Emails),
 	)
+	setupLog.Debug("notifications", "webhooks", flags.Notifications.Webhooks, "emails", flags.Notifications.Emails)
 
-	if err := notification.ValidateTemplates(
-		templateFS,
-		flags.Notifications,
-		flags.CheckIn.Name,
-		flags.CheckIn.ExpectedEvery,
-		flags.CheckIn.AlertingDelay,
-	); err != nil {
-		setupLog.Error("notification template validation error", "error", err)
-		return err
-	}
-
-	reg := metrics.NewRegistry()
-
-	notify, err := notification.NewDispatcher(
+	receivers, resolvedReceivers, err := notify.ReceiversFromConfig(
 		templateFS,
 		flags.Notifications,
 		logger.With("component", "notify"),
@@ -79,8 +69,19 @@ func Run(
 		return err
 	}
 
+	notifyManager, err := kit.NewManager(receivers, logger.With("component", "notify"))
+	if err != nil {
+		setupLog.Error("notification setup error", "error", err)
+		return err
+	}
+	setupLog.Info("configured notifiers", "receivers", len(notifyManager.Receivers()))
+
 	ctx, stop := server.SignalContext(ctx)
 	defer stop()
+	if err := notifyManager.Start(ctx); err != nil {
+		setupLog.Error("notification start error", "error", err)
+		return err
+	}
 
 	mon := monitor.New(
 		flags.CheckIn.Name,
@@ -89,7 +90,8 @@ func Run(
 		logger.With("component", "monitor"),
 	)
 
-	sched := scheduler.New(mon, notify, reg, logger.With("component", "scheduler"))
+	reg := metrics.NewRegistry()
+	sched := scheduler.New(mon, notifyManager, resolvedReceivers, reg, logger.With("component", "scheduler"))
 	if flags.CheckIn.StartActive {
 		activatedAt := time.Now()
 		sched.RecordCheckIn(activatedAt)

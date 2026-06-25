@@ -8,6 +8,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestValidateKeyValue(t *testing.T) {
+	t.Parallel()
+
+	t.Run("accepts key value", func(t *testing.T) {
+		t.Parallel()
+
+		require.NoError(t, ValidateKeyValue("owner=platform"))
+	})
+
+	t.Run("rejects missing separator", func(t *testing.T) {
+		t.Parallel()
+
+		require.Error(t, ValidateKeyValue("owner"))
+	})
+
+	t.Run("rejects empty key", func(t *testing.T) {
+		t.Parallel()
+
+		require.Error(t, ValidateKeyValue(" =platform"))
+	})
+}
+
 func TestDefaultIfZero(t *testing.T) {
 	t.Parallel()
 	t.Run("String uses fallback on empty", func(t *testing.T) {

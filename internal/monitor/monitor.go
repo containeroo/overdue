@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containeroo/overdue/internal/ids"
+	"github.com/containeroo/notifykit/ids"
 	"github.com/containeroo/overdue/internal/utils"
 )
 

@@ -18,12 +18,7 @@ func (a *API) Status() http.HandlerFunc {
 		a.logSnapshotRequested(snapshotResult, request)
 
 		if a.wantsDetails(r) {
-			response := newCheckInDetailsResponse(snapshotResult.CheckInName, snapshotResult.Snapshot, now)
-			if snapshotResult.HasNotificationStatus {
-				notifications := newNotificationStatusResponse(snapshotResult.NotificationStatus)
-				response.Notifications = &notifications
-			}
-			a.respondJSON(w, http.StatusOK, response)
+			a.respondJSON(w, http.StatusOK, newCheckInDetailsResponse(snapshotResult.CheckInName, snapshotResult.Snapshot, now))
 			return
 		}
 

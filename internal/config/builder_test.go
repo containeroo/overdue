@@ -5,9 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containeroo/overdue/internal/notification/email"
-	"github.com/containeroo/overdue/internal/notification/render"
-	"github.com/containeroo/overdue/internal/notification/webhook"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,10 +26,11 @@ func TestNotificationsFromDynamicGroups(t *testing.T) {
 			"--email.ops.template=email.tmpl",
 		})
 
-		cfg, err := NotificationsFromDynamicGroups("v0.0.7", "https://overdue.example.test/overdue", "/checkin", fs.DynamicGroups())
+		cfg, err := notificationsFromDynamicGroups("v0.0.7", "https://overdue.example.test/overdue", "/checkin", fs.DynamicGroups())
 
 		require.NoError(t, err)
 		assert.Equal(t, "v0.0.7", cfg.App.Version)
+		assert.Equal(t, "https://overdue.example.test/overdue", cfg.App.SiteRoot)
 		assert.Equal(t, "https://overdue.example.test/overdue/checkin", cfg.App.CheckInURL)
 		assert.Equal(t, "https://overdue.example.test/overdue/status", cfg.App.StatusURL)
 		require.Len(t, cfg.Webhooks, 2)
@@ -48,7 +46,7 @@ func TestNotificationsFromDynamicGroups(t *testing.T) {
 		fs := notificationTestFlagSet(t, nil)
 		fs.DynamicGroup("pagerduty").String("routing-key", "", "routing key")
 
-		cfg, err := NotificationsFromDynamicGroups("dev", "", "/checkin", fs.DynamicGroups())
+		cfg, err := notificationsFromDynamicGroups("dev", "", "/checkin", fs.DynamicGroups())
 
 		require.NoError(t, err)
 		assert.Empty(t, cfg.Webhooks)
@@ -62,7 +60,7 @@ func TestNotificationsFromDynamicGroups(t *testing.T) {
 		fs.DynamicGroup("pagerduty").String("routing-key", "", "routing key")
 		require.NoError(t, fs.Parse([]string{"--pagerduty.ops.routing-key=secret"}))
 
-		_, err := NotificationsFromDynamicGroups("dev", "", "/checkin", fs.DynamicGroups())
+		_, err := notificationsFromDynamicGroups("dev", "", "/checkin", fs.DynamicGroups())
 
 		require.Error(t, err)
 		assert.EqualError(t, err, `unsupported notification group "pagerduty"`)
@@ -83,10 +81,7 @@ func TestWebhooksFromDynamicGroup(t *testing.T) {
 			"--webhook.ops.timeout=5s",
 			"--webhook.ops.skip-insecure=true",
 			"--webhook.ops.send-resolved=true",
-			"--webhook.ops.title-template=ops title",
-			"--webhook.ops.resolved-title-template=ops resolved title",
-			"--webhook.ops.text-template=ops text",
-			"--webhook.ops.resolved-text-template=ops resolved text",
+			"--webhook.ops.subject-template=ops subject",
 			"--webhook.ops.template=ops.tmpl",
 			"--webhook.ops.log-response=body",
 			"--webhook.ops.response-body-limit=128",
@@ -96,23 +91,18 @@ func TestWebhooksFromDynamicGroup(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Len(t, configs, 1)
-		assert.Equal(t, webhook.Config{
-			Name:         "ops",
-			URL:          "https://example.test/webhook",
-			Method:       http.MethodPatch,
-			Headers:      map[string]string{"Authorization": "Bearer token", "User-Agent": "overdue/dev"},
-			Timeout:      5 * time.Second,
-			SkipInsecure: true,
-			SendResolved: true,
-			ContentTemplates: render.ContentTemplates{
-				Title:         "ops title",
-				ResolvedTitle: "ops resolved title",
-				Text:          "ops text",
-				ResolvedText:  "ops resolved text",
-				CustomData:    map[string]string{"channel": "#ops"},
-			},
+		assert.Equal(t, WebhookConfig{
+			Name:              "ops",
+			URL:               "https://example.test/webhook",
+			Method:            http.MethodPatch,
+			Headers:           map[string]string{"Authorization": "Bearer token", "User-Agent": "overdue/dev"},
+			Timeout:           5 * time.Second,
+			SkipInsecure:      true,
+			SendResolved:      true,
+			SubjectTemplate:   "ops subject",
 			Template:          "ops.tmpl",
-			LogResponse:       webhook.LogResponseBody,
+			CustomData:        map[string]string{"channel": "#ops"},
+			LogResponse:       LogResponseBody,
 			ResponseBodyLimit: 128,
 		}, configs[0])
 	})
@@ -126,14 +116,14 @@ func TestWebhooksFromDynamicGroup(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Len(t, configs, 1)
-		assert.Equal(t, webhook.Config{
+		assert.Equal(t, WebhookConfig{
 			Name:              "ops",
 			Method:            http.MethodPost,
 			URL:               "https://example.test/webhook",
 			Headers:           map[string]string{"User-Agent": "overdue/dev"},
 			Timeout:           10 * time.Second,
-			ContentTemplates:  render.DefaultContentTemplates(),
-			LogResponse:       webhook.LogResponseSummary,
+			SubjectTemplate:   defaultSubjectTemplate,
+			LogResponse:       LogResponseSummary,
 			ResponseBodyLimit: 4096,
 		}, configs[0])
 	})
@@ -171,11 +161,6 @@ func TestEmailsFromDynamicGroup(t *testing.T) {
 			"--email.ops.headers=X-Trace=yes",
 			"--email.ops.custom-data=owner=platform",
 			"--email.ops.subject-template=subject",
-			"--email.ops.resolved-subject-template=resolved subject",
-			"--email.ops.title-template=email title",
-			"--email.ops.resolved-title-template=email resolved title",
-			"--email.ops.text-template=email text",
-			"--email.ops.resolved-text-template=email resolved text",
 			"--email.ops.template=email.tmpl",
 		})
 
@@ -183,27 +168,20 @@ func TestEmailsFromDynamicGroup(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Len(t, configs, 1)
-		assert.Equal(t, email.Config{
-			Name:                    "ops",
-			Host:                    "smtp.example.test",
-			Port:                    2525,
-			User:                    "user",
-			Pass:                    "pass",
-			SkipTLSVerify:           true,
-			SendResolved:            true,
-			From:                    "overdue@example.test",
-			To:                      []string{"ops@example.test"},
-			Headers:                 map[string]string{"X-Mailer": "overdue/dev", "X-Trace": "yes"},
-			SubjectTemplate:         "subject",
-			ResolvedSubjectTemplate: "resolved subject",
-			ContentTemplates: render.ContentTemplates{
-				Title:         "email title",
-				ResolvedTitle: "email resolved title",
-				Text:          "email text",
-				ResolvedText:  "email resolved text",
-				CustomData:    map[string]string{"owner": "platform"},
-			},
-			Template: "email.tmpl",
+		assert.Equal(t, EmailConfig{
+			Name:            "ops",
+			Host:            "smtp.example.test",
+			Port:            2525,
+			User:            "user",
+			Pass:            "pass",
+			SkipTLSVerify:   true,
+			SendResolved:    true,
+			From:            "overdue@example.test",
+			To:              []string{"ops@example.test"},
+			Headers:         map[string]string{"X-Mailer": "overdue/dev", "X-Trace": "yes"},
+			SubjectTemplate: "subject",
+			Template:        "email.tmpl",
+			CustomData:      map[string]string{"owner": "platform"},
 		}, configs[0])
 	})
 
@@ -220,16 +198,14 @@ func TestEmailsFromDynamicGroup(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Len(t, configs, 1)
-		assert.Equal(t, email.Config{
-			Name:                    "ops",
-			Host:                    "smtp.example.test",
-			Port:                    587,
-			From:                    "overdue@example.test",
-			To:                      []string{"ops@example.test"},
-			Headers:                 map[string]string{"X-Mailer": "overdue/dev"},
-			SubjectTemplate:         "{{ .Title }}",
-			ResolvedSubjectTemplate: "{{ .Title }}",
-			ContentTemplates:        render.DefaultContentTemplates(),
+		assert.Equal(t, EmailConfig{
+			Name:            "ops",
+			Host:            "smtp.example.test",
+			Port:            587,
+			From:            "overdue@example.test",
+			To:              []string{"ops@example.test"},
+			Headers:         map[string]string{"X-Mailer": "overdue/dev"},
+			SubjectTemplate: defaultSubjectTemplate,
 		}, configs[0])
 	})
 }

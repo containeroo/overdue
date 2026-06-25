@@ -5,7 +5,6 @@ import (
 
 	"github.com/containeroo/overdue/internal/metrics"
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/target"
 )
 
 // CheckInMonitor exposes the check-in monitor behavior used by the check-in service.
@@ -13,11 +12,6 @@ type CheckInMonitor interface {
 	CheckInName() string
 	RecordCheckIn(at time.Time) monitor.RecordResult
 	Snapshot() monitor.Snapshot
-}
-
-// notificationStatusMonitor exposes the notification delivery status used by the check-in service.
-type notificationStatusMonitor interface {
-	NotificationStatus() target.Status
 }
 
 // CheckIn records incoming check-ins and owns application side effects such as metrics.
@@ -35,10 +29,8 @@ type RecordCheckInResult struct {
 
 // SnapshotResult describes a check-in monitor snapshot.
 type SnapshotResult struct {
-	CheckInName           string
-	Snapshot              monitor.Snapshot
-	NotificationStatus    target.Status
-	HasNotificationStatus bool
+	CheckInName string
+	Snapshot    monitor.Snapshot
 }
 
 // NewCheckIn creates a check-in service.
@@ -84,10 +76,6 @@ func (s *CheckIn) Snapshot() SnapshotResult {
 	result := SnapshotResult{
 		CheckInName: s.checkInMonitor.CheckInName(),
 		Snapshot:    s.checkInMonitor.Snapshot(),
-	}
-	if statusMonitor, ok := s.checkInMonitor.(notificationStatusMonitor); ok {
-		result.NotificationStatus = statusMonitor.NotificationStatus()
-		result.HasNotificationStatus = true
 	}
 	s.metrics.SetMonitorSnapshot(result.CheckInName, result.Snapshot)
 
