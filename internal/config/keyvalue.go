@@ -1,4 +1,4 @@
-package flag
+package config
 
 import (
 	"errors"
@@ -8,8 +8,8 @@ import (
 	"github.com/containeroo/httputils"
 )
 
-// validateKeyValue validates a key=value string.
-func validateKeyValue(raw string) error {
+// ValidateKeyValue validates a KEY=VALUE option.
+func ValidateKeyValue(raw string) error {
 	key, _, ok := strings.Cut(raw, "=")
 	if !ok {
 		return errors.New("must be in KEY=VALUE format")
@@ -22,13 +22,13 @@ func validateKeyValue(raw string) error {
 	return nil
 }
 
-// webhookHeadersMap creates a header map from KEY=VALUE strings.
-func webhookHeadersMap(groupName, id string, headers []string) (parsed map[string]string, err error) {
+// headerMap creates a header map from KEY=VALUE strings.
+func headerMap(groupName, id string, headers []string) (map[string]string, error) {
 	if len(headers) == 0 {
 		return nil, nil
 	}
 
-	parsed = make(map[string]string, len(headers))
+	parsed := make(map[string]string, len(headers))
 	for _, header := range headers {
 		values, err := httputils.ParseHeaders(header, false)
 		if err != nil {

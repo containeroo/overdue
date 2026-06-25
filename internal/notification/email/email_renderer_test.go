@@ -1,4 +1,4 @@
-package targets
+package email
 
 import (
 	"testing"
@@ -9,12 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewEmailRenderer(t *testing.T) {
+func TestNewRenderer(t *testing.T) {
 	t.Parallel()
 	t.Run("builds renderer", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewEmailRenderer(
+		renderer, err := NewRenderer(
 			testTemplateFS(),
 			"builtin:email-html",
 			`subject {{ .CheckInName }}`,
@@ -30,7 +30,7 @@ func TestNewEmailRenderer(t *testing.T) {
 	t.Run("returns content renderer errors", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := NewEmailRenderer(nil, "builtin:missing", "", "", render.DefaultContentTemplates())
+		_, err := NewRenderer(nil, "builtin:missing", "", "", render.DefaultContentTemplates())
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "built-in templates are not configured")
@@ -39,19 +39,19 @@ func TestNewEmailRenderer(t *testing.T) {
 	t.Run("returns subject parse errors", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := NewEmailRenderer(nil, "", `{{ if }}`, "", render.DefaultContentTemplates())
+		_, err := NewRenderer(nil, "", `{{ if }}`, "", render.DefaultContentTemplates())
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "parse subject-template")
 	})
 }
 
-func TestEmailRendererRender(t *testing.T) {
+func TestRendererRender(t *testing.T) {
 	t.Parallel()
 	t.Run("renders alerting email message", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewEmailRenderer(
+		renderer, err := NewRenderer(
 			testTemplateFS(),
 			"builtin:email-html",
 			`subject {{ .Title }}`,
@@ -71,7 +71,7 @@ func TestEmailRendererRender(t *testing.T) {
 	t.Run("renders custom data in subject and body", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewEmailRenderer(
+		renderer, err := NewRenderer(
 			nil,
 			writeTemplate(t, `owner={{ .CustomData.owner }} text={{ .Text }}`),
 			`subject {{ .CustomData.owner }}`,
@@ -93,7 +93,7 @@ func TestEmailRendererRender(t *testing.T) {
 	t.Run("renders resolved email message", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewEmailRenderer(
+		renderer, err := NewRenderer(
 			testTemplateFS(),
 			"builtin:email-html",
 			`subject {{ .Title }}`,
@@ -113,7 +113,7 @@ func TestEmailRendererRender(t *testing.T) {
 	t.Run("uses default subject templates", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewEmailRenderer(nil, "", "", "", testContentTemplates())
+		renderer, err := NewRenderer(nil, "", "", "", testContentTemplates())
 		require.NoError(t, err)
 
 		message, err := renderer.Render(testEvent())
@@ -126,7 +126,7 @@ func TestEmailRendererRender(t *testing.T) {
 	t.Run("returns body render errors", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewEmailRenderer(nil, writeTemplate(t, `{{ .Missing.Field }}`), "", "", render.DefaultContentTemplates())
+		renderer, err := NewRenderer(nil, writeTemplate(t, `{{ .Missing.Field }}`), "", "", render.DefaultContentTemplates())
 		require.NoError(t, err)
 
 		_, err = renderer.Render(testEvent())
@@ -138,7 +138,7 @@ func TestEmailRendererRender(t *testing.T) {
 	t.Run("returns subject render errors", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewEmailRenderer(nil, "", `{{ .Missing.Field }}`, "", render.DefaultContentTemplates())
+		renderer, err := NewRenderer(nil, "", `{{ .Missing.Field }}`, "", render.DefaultContentTemplates())
 		require.NoError(t, err)
 
 		_, err = renderer.Render(testEvent())
@@ -148,12 +148,12 @@ func TestEmailRendererRender(t *testing.T) {
 	})
 }
 
-func TestEmailRendererValidate(t *testing.T) {
+func TestRendererValidate(t *testing.T) {
 	t.Parallel()
 	t.Run("validates sample events", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewEmailRenderer(testTemplateFS(), "builtin:email-html", "", "", render.DefaultContentTemplates())
+		renderer, err := NewRenderer(testTemplateFS(), "builtin:email-html", "", "", render.DefaultContentTemplates())
 		require.NoError(t, err)
 
 		err = renderer.Validate()
@@ -162,12 +162,12 @@ func TestEmailRendererValidate(t *testing.T) {
 	})
 }
 
-func TestEmailRendererValidateWithEvents(t *testing.T) {
+func TestRendererValidateWithEvents(t *testing.T) {
 	t.Parallel()
 	t.Run("wraps alerting validation errors", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewEmailRenderer(nil, "", `{{ .Missing.Field }}`, "", render.DefaultContentTemplates())
+		renderer, err := NewRenderer(nil, "", `{{ .Missing.Field }}`, "", render.DefaultContentTemplates())
 		require.NoError(t, err)
 
 		err = renderer.ValidateWithEvents(testEvent(), testResolvedEvent())
@@ -179,7 +179,7 @@ func TestEmailRendererValidateWithEvents(t *testing.T) {
 	t.Run("wraps resolved validation errors", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewEmailRenderer(nil, "", `{{ .Title }}`, `{{ .Missing.Field }}`, render.DefaultContentTemplates())
+		renderer, err := NewRenderer(nil, "", `{{ .Title }}`, `{{ .Missing.Field }}`, render.DefaultContentTemplates())
 		require.NoError(t, err)
 
 		err = renderer.ValidateWithEvents(testEvent(), testResolvedEvent())
@@ -189,12 +189,12 @@ func TestEmailRendererValidateWithEvents(t *testing.T) {
 	})
 }
 
-func TestEmailRendererRenderSubject(t *testing.T) {
+func TestRendererRenderSubject(t *testing.T) {
 	t.Parallel()
 	t.Run("uses default subject for zero value renderer", func(t *testing.T) {
 		t.Parallel()
 
-		subject, err := (EmailRenderer{}).renderSubject(monitor.Event{Title: "default subject"})
+		subject, err := (Renderer{}).renderSubject(monitor.Event{Title: "default subject"})
 
 		require.NoError(t, err)
 		assert.Equal(t, "default subject", subject)

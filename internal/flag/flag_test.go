@@ -60,10 +60,10 @@ func TestParseArgs(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, "https://overdue.example.test/overdue", cfg.PublicURL)
-		assert.Equal(t, "v0.0.7", cfg.Notify.App.Version)
-		assert.Equal(t, "https://overdue.example.test/overdue", cfg.Notify.App.PublicURL)
-		assert.Equal(t, "https://overdue.example.test/overdue/custom-check-in", cfg.Notify.App.CheckInURL)
-		assert.Equal(t, "https://overdue.example.test/overdue/status", cfg.Notify.App.StatusURL)
+		assert.Equal(t, "v0.0.7", cfg.Notifications.App.Version)
+		assert.Equal(t, "https://overdue.example.test/overdue", cfg.Notifications.App.PublicURL)
+		assert.Equal(t, "https://overdue.example.test/overdue/custom-check-in", cfg.Notifications.App.CheckInURL)
+		assert.Equal(t, "https://overdue.example.test/overdue/status", cfg.Notifications.App.StatusURL)
 	})
 
 	t.Run("rejects invalid public url", func(t *testing.T) {
@@ -104,7 +104,7 @@ func TestParseArgs(t *testing.T) {
 		}, "dev")
 
 		require.NoError(t, err)
-		webhook := requireWebhookConfig(t, cfg.Notify.Webhooks, "ops")
+		webhook := requireWebhookConfig(t, cfg.Notifications.Webhooks, "ops")
 		assert.Equal(t, "builtin:slack-incoming-webhook", webhook.Template)
 	})
 
@@ -122,7 +122,7 @@ func TestParseArgs(t *testing.T) {
 		}, "dev")
 
 		require.NoError(t, err)
-		email := requireEmailConfig(t, cfg.Notify.Emails, "primary")
+		email := requireEmailConfig(t, cfg.Notifications.Emails, "primary")
 		assert.Equal(t, "builtin:email-html", email.Template)
 	})
 
@@ -141,7 +141,7 @@ func TestParseArgs(t *testing.T) {
 		}, "dev")
 
 		require.NoError(t, err)
-		webhook := requireWebhookConfig(t, cfg.Notify.Webhooks, "ops")
+		webhook := requireWebhookConfig(t, cfg.Notifications.Webhooks, "ops")
 		assert.Equal(t, "https://example.test/cli", webhook.URL)
 		assert.Equal(t, 7*time.Second, webhook.Timeout)
 	})
@@ -260,7 +260,7 @@ func TestParseArgs(t *testing.T) {
 		}, "dev")
 
 		require.NoError(t, err)
-		webhook := requireWebhookConfig(t, cfg.Notify.Webhooks, "ops")
+		webhook := requireWebhookConfig(t, cfg.Notifications.Webhooks, "ops")
 		assert.Equal(t, path, webhook.Template)
 	})
 

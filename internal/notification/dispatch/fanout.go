@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/delivery"
+	"github.com/containeroo/overdue/internal/notification/target"
 )
 
 const (
@@ -20,10 +20,10 @@ const (
 // deliveryKey identifies one notification delivery across retry attempts.
 type deliveryKey string
 
-// Fanout sends each notification event to every configured notifier.
+// Fanout sends each notification event to every configured target.
 type Fanout struct {
 	mu             sync.Mutex
-	Notifiers      []delivery.Notifier
+	targets        []target.Notifier
 	eventStates    map[deliveryKey]*eventState
 	targetStates   []targetState
 	InitialBackoff time.Duration
@@ -36,9 +36,9 @@ type eventState struct {
 	attempts  int
 }
 
-// targetState tracks the latest known delivery status for one configured notifier.
+// targetState tracks the latest known target status for one configured target.
 type targetState struct {
-	status          delivery.DeliveryStatus
+	status          target.DeliveryStatus
 	lastAttemptAt   time.Time
 	lastDeliveredAt time.Time
 }
@@ -72,21 +72,37 @@ func (e *RetryError) NotificationStats() (delivered, failed, pending int) {
 	return e.Delivered, e.Failed, e.Pending
 }
 
-// New creates a stateful fan-out notifier.
-func New(notifiers []delivery.Notifier) *Fanout {
+// New creates a stateful target fan-out notifier.
+func New(targets []target.Notifier) *Fanout {
 	return &Fanout{
-		Notifiers:      append([]delivery.Notifier(nil), notifiers...),
+		targets:        append([]target.Notifier(nil), targets...),
 		eventStates:    make(map[deliveryKey]*eventState),
-		targetStates:   make([]targetState, len(notifiers)),
+		targetStates:   make([]targetState, len(targets)),
 		InitialBackoff: defaultInitialNotificationBackoff,
 		MaxBackoff:     defaultMaxNotificationBackoff,
 	}
 }
 
-// NotificationStatus returns aggregate and per-target delivery state.
-func (f *Fanout) NotificationStatus() delivery.Status {
+// Targets returns the configured notification target metadata in delivery order.
+func (f *Fanout) Targets() []target.Target {
 	if f == nil {
-		return delivery.Status{Status: delivery.StatusIdle}
+		return nil
+	}
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	targets := make([]target.Target, 0, len(f.targets))
+	for i, notifier := range f.targets {
+		targets = append(targets, targetMetadata(notifier, i))
+	}
+	return targets
+}
+
+// NotificationStatus returns aggregate and per-target delivery state.
+func (f *Fanout) NotificationStatus() target.Status {
+	if f == nil {
+		return target.Status{Status: target.StatusIdle}
 	}
 
 	f.mu.Lock()
@@ -94,33 +110,32 @@ func (f *Fanout) NotificationStatus() delivery.Status {
 
 	f.ensureTargetStatesLocked()
 
-	targets := make([]delivery.TargetStatus, 0, len(f.Notifiers))
-	status := delivery.Status{
-		Total: len(f.Notifiers),
-	}
+	targets := make([]target.TargetStatus, 0, len(f.targets))
+	status := target.Status{Total: len(f.targets)}
 
-	for i, notifier := range f.Notifiers {
+	for i, notifier := range f.targets {
 		state := f.targetStates[i]
 		targetStatus := state.status
 		if targetStatus == "" {
-			targetStatus = delivery.StatusIdle
+			targetStatus = target.StatusIdle
 		}
 
 		switch targetStatus {
-		case delivery.StatusDelivered:
+		case target.StatusDelivered:
 			status.Delivered++
-		case delivery.StatusFailed:
+		case target.StatusFailed:
 			status.Failed++
 			status.Pending++
-		case delivery.StatusPending:
+		case target.StatusPending:
 			status.Pending++
-		case delivery.StatusSkipped:
+		case target.StatusSkipped:
 			status.Skipped++
 		}
 
-		targets = append(targets, delivery.TargetStatus{
-			Type:            notificationTargetType(notifier),
-			Name:            notificationTargetName(notifier, i),
+		metadata := targetMetadata(notifier, i)
+		targets = append(targets, target.TargetStatus{
+			Type:            metadata.Type,
+			Name:            metadata.Name,
 			Status:          targetStatus,
 			LastAttemptAt:   timePtrIfNonZero(state.lastAttemptAt),
 			LastDeliveredAt: timePtrIfNonZero(state.lastDeliveredAt),
@@ -132,13 +147,13 @@ func (f *Fanout) NotificationStatus() delivery.Status {
 	return status
 }
 
-// Notify sends the event to every not-yet-delivered notifier and joins any errors.
+// Notify sends the event to every not-yet-delivered target and joins any errors.
 func (f *Fanout) Notify(ctx context.Context, event monitor.Event) error {
 	if f == nil {
 		return nil
 	}
 
-	key, err := delivery.NotificationKey(event)
+	key, err := target.NotificationKey(event)
 	if err != nil {
 		return err
 	}
@@ -147,11 +162,11 @@ func (f *Fanout) Notify(ctx context.Context, event monitor.Event) error {
 	f.mu.Lock()
 	state := f.eventStateLocked(dkey)
 	deliveredBefore := state.deliveredCount()
-	pending := f.pendingNotifiersLocked(state)
+	pending := f.pendingTargetsLocked(state)
 	f.mu.Unlock()
 
 	if len(pending) == 0 {
-		// A previous retry attempt may have delivered the final pending notifier.
+		// A previous retry attempt may have delivered the final pending target.
 		f.clearEvent(dkey)
 		return nil
 	}
@@ -170,14 +185,15 @@ func (f *Fanout) Notify(ctx context.Context, event monitor.Event) error {
 		}
 
 		if err := item.notifier.Notify(ctx, event); err != nil {
-			if errors.Is(err, delivery.ErrSkipped) {
+			if errors.Is(err, target.ErrSkipped) {
 				f.markSkipped(dkey, item.index, attemptAt)
 				deliveredNow++
 				continue
 			}
 
 			f.markFailed(item.index)
-			errs = append(errs, fmt.Errorf("notifier %d: %w", item.index, err))
+			metadata := targetMetadata(item.notifier, item.index)
+			errs = append(errs, fmt.Errorf("%s %q: %w", metadata.Type, metadata.Name, err))
 			continue
 		}
 
@@ -200,7 +216,7 @@ func (f *Fanout) Notify(ctx context.Context, event monitor.Event) error {
 	}
 }
 
-// deliveredCount returns the number of successful notifier deliveries.
+// deliveredCount returns the number of successful target deliveries.
 func (s *eventState) deliveredCount() int {
 	count := 0
 	for _, delivered := range s.delivered {
@@ -211,21 +227,21 @@ func (s *eventState) deliveredCount() int {
 	return count
 }
 
-// pendingNotifier describes one notifier still pending for an event.
-type pendingNotifier struct {
+// pendingTarget describes one target still pending for an event.
+type pendingTarget struct {
 	index    int
-	notifier delivery.Notifier
+	notifier target.Notifier
 }
 
-// pendingNotifiersLocked returns notifiers that have not yet succeeded for the event.
-func (f *Fanout) pendingNotifiersLocked(state *eventState) (pending []pendingNotifier) {
-	pending = make([]pendingNotifier, 0, len(f.Notifiers))
+// pendingTargetsLocked returns targets that have not yet succeeded for the event.
+func (f *Fanout) pendingTargetsLocked(state *eventState) (pending []pendingTarget) {
+	pending = make([]pendingTarget, 0, len(f.targets))
 
-	for i, notifier := range f.Notifiers {
+	for i, notifier := range f.targets {
 		if state.delivered[i] {
 			continue
 		}
-		pending = append(pending, pendingNotifier{
+		pending = append(pending, pendingTarget{
 			index:    i,
 			notifier: notifier,
 		})
@@ -234,7 +250,7 @@ func (f *Fanout) pendingNotifiersLocked(state *eventState) (pending []pendingNot
 	return pending
 }
 
-// markAttempted records that a notifier delivery attempt started.
+// markAttempted records that a target delivery attempt started.
 func (f *Fanout) markAttempted(index int, at time.Time) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -244,11 +260,11 @@ func (f *Fanout) markAttempted(index int, at time.Time) {
 		return
 	}
 
-	f.targetStates[index].status = delivery.StatusPending
+	f.targetStates[index].status = target.StatusPending
 	f.targetStates[index].lastAttemptAt = at
 }
 
-// markDelivered records a successful notifier for an event.
+// markDelivered records a successful target for an event.
 func (f *Fanout) markDelivered(key deliveryKey, index int, at time.Time) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -263,12 +279,12 @@ func (f *Fanout) markDelivered(key deliveryKey, index int, at time.Time) {
 	if index >= len(f.targetStates) {
 		return
 	}
-	f.targetStates[index].status = delivery.StatusDelivered
+	f.targetStates[index].status = target.StatusDelivered
 	f.targetStates[index].lastAttemptAt = at
 	f.targetStates[index].lastDeliveredAt = at
 }
 
-// markSkipped records an intentionally skipped notifier for an event.
+// markSkipped records an intentionally skipped target for an event.
 func (f *Fanout) markSkipped(key deliveryKey, index int, at time.Time) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -283,12 +299,12 @@ func (f *Fanout) markSkipped(key deliveryKey, index int, at time.Time) {
 	if index >= len(f.targetStates) {
 		return
 	}
-	f.targetStates[index].status = delivery.StatusSkipped
+	f.targetStates[index].status = target.StatusSkipped
 	f.targetStates[index].lastAttemptAt = at
 	f.targetStates[index].lastDeliveredAt = time.Time{}
 }
 
-// markFailed records a failed notifier attempt.
+// markFailed records a failed target attempt.
 func (f *Fanout) markFailed(index int) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -297,7 +313,7 @@ func (f *Fanout) markFailed(index int) {
 	if index >= len(f.targetStates) {
 		return
 	}
-	f.targetStates[index].status = delivery.StatusFailed
+	f.targetStates[index].status = target.StatusFailed
 }
 
 // clearEvent removes retry state once an event is fully delivered.
@@ -341,29 +357,29 @@ func (f *Fanout) eventStateLocked(key deliveryKey) *eventState {
 
 	state := f.eventStates[key]
 	if state == nil {
-		// Allocate one delivery slot per currently configured notifier.
-		// Each slot tracks whether that notifier already delivered this notification successfully.
-		state = &eventState{delivered: make([]bool, len(f.Notifiers))}
+		// Allocate one target slot per currently configured target.
+		// Each slot tracks whether that target already delivered this notification successfully.
+		state = &eventState{delivered: make([]bool, len(f.targets))}
 		f.eventStates[key] = state
 		return state
 	}
 
-	if len(state.delivered) < len(f.Notifiers) {
-		// Preserve existing delivery results when notifiers are added after retry state was created.
-		// New notifier slots start as false, so they are treated as pending for the next attempt.
-		missing := len(f.Notifiers) - len(state.delivered)
+	if len(state.delivered) < len(f.targets) {
+		// Preserve existing target results when targets are added after retry state was created.
+		// New target slots start as false, so they are treated as pending for the next attempt.
+		missing := len(f.targets) - len(state.delivered)
 		state.delivered = append(state.delivered, make([]bool, missing)...)
 	}
 
 	return state
 }
 
-// ensureTargetStatesLocked keeps target state aligned with the configured notifiers.
+// ensureTargetStatesLocked keeps target state aligned with the configured targets.
 func (f *Fanout) ensureTargetStatesLocked() {
-	if len(f.targetStates) >= len(f.Notifiers) {
+	if len(f.targetStates) >= len(f.targets) {
 		return
 	}
-	missing := len(f.Notifiers) - len(f.targetStates)
+	missing := len(f.targets) - len(f.targetStates)
 	f.targetStates = append(f.targetStates, make([]targetState, missing)...)
 }
 
@@ -383,39 +399,36 @@ func (f *Fanout) maxBackoffLocked() time.Duration {
 	return f.MaxBackoff
 }
 
-func aggregateNotificationStatus(status delivery.Status) delivery.DeliveryStatus {
+func aggregateNotificationStatus(status target.Status) target.DeliveryStatus {
 	switch {
 	case status.Total == 0:
-		return delivery.StatusIdle
+		return target.StatusIdle
 	case status.Pending > 0 && status.Delivered > 0:
-		return delivery.StatusPartialFailure
+		return target.StatusPartialFailure
 	case status.Pending > 0:
-		return delivery.StatusFailed
+		return target.StatusFailed
 	case status.Delivered > 0 || status.Skipped > 0:
-		return delivery.StatusDelivered
+		return target.StatusDelivered
 	default:
-		return delivery.StatusIdle
+		return target.StatusIdle
 	}
 }
 
-func notificationTargetType(notifier delivery.Notifier) string {
-	targeter, ok := notifier.(delivery.Targeter)
-	if !ok {
-		return "unknown"
+func targetMetadata(notifier target.Notifier, index int) target.Target {
+	metadata := target.Target{Type: "unknown", Name: fmt.Sprintf("target-%d", index)}
+	if notifier != nil {
+		metadata = notifier.Target()
 	}
-	return targeter.NotificationTarget().Type
-}
 
-func notificationTargetName(notifier delivery.Notifier, index int) string {
-	targeter, ok := notifier.(delivery.Targeter)
-	if !ok {
-		return fmt.Sprintf("notifier-%d", index)
+	metadata.Type = strings.TrimSpace(metadata.Type)
+	metadata.Name = strings.TrimSpace(metadata.Name)
+	if metadata.Type == "" {
+		metadata.Type = "unknown"
 	}
-	target := targeter.NotificationTarget()
-	if strings.TrimSpace(target.Name) == "" {
-		return fmt.Sprintf("%s-%d", target.Type, index)
+	if metadata.Name == "" {
+		metadata.Name = fmt.Sprintf("%s-%d", metadata.Type, index)
 	}
-	return target.Name
+	return metadata
 }
 
 func timePtrIfNonZero(value time.Time) *time.Time {

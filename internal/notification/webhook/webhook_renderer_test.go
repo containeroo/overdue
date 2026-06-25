@@ -1,4 +1,4 @@
-package targets
+package webhook
 
 import (
 	"encoding/json"
@@ -10,12 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewWebhookRenderer(t *testing.T) {
+func TestNewRenderer(t *testing.T) {
 	t.Parallel()
 	t.Run("builds renderer", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewWebhookRenderer(testTemplateFS(), "builtin:webhook", testContentTemplates())
+		renderer, err := NewRenderer(testTemplateFS(), "builtin:webhook", testContentTemplates())
 
 		require.NoError(t, err)
 		require.NotZero(t, renderer)
@@ -24,19 +24,19 @@ func TestNewWebhookRenderer(t *testing.T) {
 	t.Run("returns content renderer errors", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := NewWebhookRenderer(nil, "builtin:missing", render.DefaultContentTemplates())
+		_, err := NewRenderer(nil, "builtin:missing", render.DefaultContentTemplates())
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "built-in templates are not configured")
 	})
 }
 
-func TestWebhookRendererRenderBody(t *testing.T) {
+func TestRendererRenderBody(t *testing.T) {
 	t.Parallel()
 	t.Run("renders valid json body and enriched event", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewWebhookRenderer(testTemplateFS(), "builtin:webhook", testContentTemplates())
+		renderer, err := NewRenderer(testTemplateFS(), "builtin:webhook", testContentTemplates())
 		require.NoError(t, err)
 
 		event, body, err := renderer.RenderBody(testEvent())
@@ -50,7 +50,7 @@ func TestWebhookRendererRenderBody(t *testing.T) {
 	t.Run("renders custom data", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewWebhookRenderer(nil, writeTemplate(t, `{"channel":{{ json .CustomData.channel }},"text":{{ json .Text }}}`), render.ContentTemplates{
+		renderer, err := NewRenderer(nil, writeTemplate(t, `{"channel":{{ json .CustomData.channel }},"text":{{ json .Text }}}`), render.ContentTemplates{
 			Text:       `{{ .CheckInName }} is down`,
 			CustomData: map[string]string{"channel": "#ops"},
 		})
@@ -65,7 +65,7 @@ func TestWebhookRendererRenderBody(t *testing.T) {
 	t.Run("renders resolved content", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewWebhookRenderer(testTemplateFS(), "builtin:webhook", testContentTemplates())
+		renderer, err := NewRenderer(testTemplateFS(), "builtin:webhook", testContentTemplates())
 		require.NoError(t, err)
 
 		event, body, err := renderer.RenderBody(testResolvedEvent())
@@ -79,7 +79,7 @@ func TestWebhookRendererRenderBody(t *testing.T) {
 	t.Run("rejects invalid json body", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewWebhookRenderer(nil, writeTemplate(t, `not json`), render.DefaultContentTemplates())
+		renderer, err := NewRenderer(nil, writeTemplate(t, `not json`), render.DefaultContentTemplates())
 		require.NoError(t, err)
 
 		_, _, err = renderer.RenderBody(testEvent())
@@ -91,7 +91,7 @@ func TestWebhookRendererRenderBody(t *testing.T) {
 	t.Run("returns enrichment errors", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewWebhookRenderer(nil, writeTemplate(t, `{}`), render.ContentTemplates{
+		renderer, err := NewRenderer(nil, writeTemplate(t, `{}`), render.ContentTemplates{
 			Title:         `{{ .Missing.Field }}`,
 			ResolvedTitle: `resolved`,
 			Text:          `text`,
@@ -108,7 +108,7 @@ func TestWebhookRendererRenderBody(t *testing.T) {
 	t.Run("returns body render errors", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewWebhookRenderer(nil, writeTemplate(t, `{{ .Missing.Field }}`), render.DefaultContentTemplates())
+		renderer, err := NewRenderer(nil, writeTemplate(t, `{{ .Missing.Field }}`), render.DefaultContentTemplates())
 		require.NoError(t, err)
 
 		_, _, err = renderer.RenderBody(testEvent())
@@ -118,12 +118,12 @@ func TestWebhookRendererRenderBody(t *testing.T) {
 	})
 }
 
-func TestWebhookRendererValidate(t *testing.T) {
+func TestRendererValidate(t *testing.T) {
 	t.Parallel()
 	t.Run("validates sample events", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewWebhookRenderer(testTemplateFS(), "builtin:webhook", render.DefaultContentTemplates())
+		renderer, err := NewRenderer(testTemplateFS(), "builtin:webhook", render.DefaultContentTemplates())
 		require.NoError(t, err)
 
 		err = renderer.Validate()
@@ -132,12 +132,12 @@ func TestWebhookRendererValidate(t *testing.T) {
 	})
 }
 
-func TestWebhookRendererValidateWithEvents(t *testing.T) {
+func TestRendererValidateWithEvents(t *testing.T) {
 	t.Parallel()
 	t.Run("wraps alerting validation errors", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewWebhookRenderer(nil, writeTemplate(t, `not json`), render.DefaultContentTemplates())
+		renderer, err := NewRenderer(nil, writeTemplate(t, `not json`), render.DefaultContentTemplates())
 		require.NoError(t, err)
 
 		err = renderer.ValidateWithEvents(testEvent(), testResolvedEvent())
@@ -149,7 +149,7 @@ func TestWebhookRendererValidateWithEvents(t *testing.T) {
 	t.Run("wraps resolved validation errors", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewWebhookRenderer(nil, writeTemplate(t, `{{ when .Resolved "not json" "{}" }}`), render.DefaultContentTemplates())
+		renderer, err := NewRenderer(nil, writeTemplate(t, `{{ when .Resolved "not json" "{}" }}`), render.DefaultContentTemplates())
 		require.NoError(t, err)
 
 		err = renderer.ValidateWithEvents(testEvent(), testResolvedEvent())
@@ -159,12 +159,12 @@ func TestWebhookRendererValidateWithEvents(t *testing.T) {
 	})
 }
 
-func TestWebhookRendererJSONShape(t *testing.T) {
+func TestRendererJSONShape(t *testing.T) {
 	t.Parallel()
 	t.Run("body can be decoded by webhook receivers", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewWebhookRenderer(testTemplateFS(), "builtin:webhook", testContentTemplates())
+		renderer, err := NewRenderer(testTemplateFS(), "builtin:webhook", testContentTemplates())
 		require.NoError(t, err)
 
 		_, body, err := renderer.RenderBody(monitor.Event{CheckInName: "prometheus"})

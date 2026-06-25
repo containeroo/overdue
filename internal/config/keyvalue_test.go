@@ -1,4 +1,4 @@
-package flag
+package config
 
 import (
 	"testing"
@@ -13,29 +13,29 @@ func TestValidateKeyValue(t *testing.T) {
 	t.Run("accepts key value", func(t *testing.T) {
 		t.Parallel()
 
-		require.NoError(t, validateKeyValue("owner=platform"))
+		require.NoError(t, ValidateKeyValue("owner=platform"))
 	})
 
 	t.Run("rejects missing separator", func(t *testing.T) {
 		t.Parallel()
 
-		require.Error(t, validateKeyValue("owner"))
+		require.Error(t, ValidateKeyValue("owner"))
 	})
 
 	t.Run("rejects empty key", func(t *testing.T) {
 		t.Parallel()
 
-		require.Error(t, validateKeyValue(" =platform"))
+		require.Error(t, ValidateKeyValue(" =platform"))
 	})
 }
 
-func TestWebhookHeadersMap(t *testing.T) {
+func TestHeaderMap(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns nil for empty headers", func(t *testing.T) {
 		t.Parallel()
 
-		headers, err := webhookHeadersMap("webhook", "ops", nil)
+		headers, err := headerMap("webhook", "ops", nil)
 
 		require.NoError(t, err)
 		assert.Nil(t, headers)
@@ -44,7 +44,7 @@ func TestWebhookHeadersMap(t *testing.T) {
 	t.Run("parses headers", func(t *testing.T) {
 		t.Parallel()
 
-		headers, err := webhookHeadersMap("webhook", "ops", []string{"Authorization=Bearer token", "X-Test=yes"})
+		headers, err := headerMap("webhook", "ops", []string{"Authorization=Bearer token", "X-Test=yes"})
 
 		require.NoError(t, err)
 		assert.Equal(t, map[string]string{"Authorization": "Bearer token", "X-Test": "yes"}, headers)
@@ -53,7 +53,7 @@ func TestWebhookHeadersMap(t *testing.T) {
 	t.Run("rejects invalid header", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := webhookHeadersMap("webhook", "ops", []string{"invalid"})
+		_, err := headerMap("webhook", "ops", []string{"invalid"})
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), `invalid "--webhook.ops.headers"`)

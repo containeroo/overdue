@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/delivery"
+	"github.com/containeroo/overdue/internal/notification/target"
 	"github.com/containeroo/overdue/internal/utils"
 )
 
@@ -68,7 +68,7 @@ type checkInDetailsResponse struct {
 
 // notificationStatusResponse is the aggregate notification delivery status.
 type notificationStatusResponse struct {
-	Status    delivery.DeliveryStatus      `json:"status"`
+	Status    target.DeliveryStatus        `json:"status"`
 	Total     int                          `json:"total"`
 	Delivered int                          `json:"delivered"`
 	Failed    int                          `json:"failed"`
@@ -77,13 +77,13 @@ type notificationStatusResponse struct {
 	Targets   []notificationTargetResponse `json:"targets"`
 }
 
-// notificationTargetResponse is a notification delivery target.
+// notificationTargetResponse is a notification target.
 type notificationTargetResponse struct {
-	Type            string                  `json:"type"`
-	Name            string                  `json:"name"`
-	Status          delivery.DeliveryStatus `json:"status"`
-	LastAttemptAt   *time.Time              `json:"lastAttemptAt,omitempty"`
-	LastDeliveredAt *time.Time              `json:"lastDeliveredAt,omitempty"`
+	Type            string                `json:"type"`
+	Name            string                `json:"name"`
+	Status          target.DeliveryStatus `json:"status"`
+	LastAttemptAt   *time.Time            `json:"lastAttemptAt,omitempty"`
+	LastDeliveredAt *time.Time            `json:"lastDeliveredAt,omitempty"`
 }
 
 // respondText writes a plain text response.
@@ -174,7 +174,7 @@ func newCheckInDetailsResponse(checkInName string, snapshot monitor.Snapshot, no
 }
 
 // newNotificationStatusResponse builds a notification delivery status response.
-func newNotificationStatusResponse(status delivery.Status) notificationStatusResponse {
+func newNotificationStatusResponse(status target.Status) notificationStatusResponse {
 	targets := make([]notificationTargetResponse, 0, len(status.Targets))
 	for _, target := range status.Targets {
 		targets = append(targets, notificationTargetResponse{

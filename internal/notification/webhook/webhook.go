@@ -1,4 +1,4 @@
-package targets
+package webhook
 
 import (
 	"bytes"
@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/delivery"
 	"github.com/containeroo/overdue/internal/notification/render"
+	"github.com/containeroo/overdue/internal/notification/target"
 )
 
 // LogResponse controls how much of a webhook response is logged on success.
@@ -32,8 +32,8 @@ const (
 	LogResponseNone LogResponse = "none"
 )
 
-// WebhookConfig contains one configured webhook notification target.
-type WebhookConfig struct {
+// Config contains one configured webhook notification target.
+type Config struct {
 	Name              string
 	URL               string
 	Method            string
@@ -47,16 +47,16 @@ type WebhookConfig struct {
 	ResponseBodyLimit int
 }
 
-// Webhook sends check-in notifications to a generic JSON webhook endpoint.
-type Webhook struct {
-	cfg      WebhookConfig
-	renderer WebhookRenderer
+// Notifier sends check-in notifications to a generic JSON webhook endpoint.
+type Notifier struct {
+	cfg      Config
+	renderer Renderer
 	client   *http.Client
 	logger   *slog.Logger
 }
 
-// NewWebhook creates a generic webhook notifier with the configured HTTP client.
-func NewWebhook(cfg WebhookConfig, renderer WebhookRenderer, logger *slog.Logger) Webhook {
+// New creates a generic webhook notifier with the configured HTTP client.
+func New(cfg Config, renderer Renderer, logger *slog.Logger) Notifier {
 	if logger == nil {
 		panic("webhook logger must not be nil")
 	}
@@ -75,7 +75,7 @@ func NewWebhook(cfg WebhookConfig, renderer WebhookRenderer, logger *slog.Logger
 	cfg.Headers = maps.Clone(cfg.Headers)
 	cfg.ContentTemplates = cfg.ContentTemplates.Clone()
 
-	return Webhook{
+	return Notifier{
 		cfg:      cfg,
 		renderer: renderer,
 		client:   webhookClient(cfg.Timeout, cfg.SkipInsecure),
@@ -84,7 +84,7 @@ func NewWebhook(cfg WebhookConfig, renderer WebhookRenderer, logger *slog.Logger
 }
 
 // Config returns a copy of the target configuration.
-func (w Webhook) Config() WebhookConfig {
+func (w Notifier) Config() Config {
 	cfg := w.cfg
 	cfg.Headers = maps.Clone(cfg.Headers)
 	cfg.ContentTemplates = cfg.ContentTemplates.Clone()
@@ -92,23 +92,23 @@ func (w Webhook) Config() WebhookConfig {
 }
 
 // Client returns the configured HTTP client.
-func (w Webhook) Client() *http.Client {
+func (w Notifier) Client() *http.Client {
 	return w.client
 }
 
-// NotificationTarget returns public target metadata for status responses.
-func (w Webhook) NotificationTarget() delivery.Target {
-	return delivery.Target{
+// Target returns public target metadata for status responses.
+func (w Notifier) Target() target.Target {
+	return target.Target{
 		Type: "webhook",
 		Name: w.cfg.Name,
 	}
 }
 
-// Notify renders and posts a webhook delivery.
-func (w Webhook) Notify(ctx context.Context, event monitor.Event) error {
+// Notify renders and posts a webhook target.
+func (w Notifier) Notify(ctx context.Context, event monitor.Event) error {
 	if event.Resolved && !w.cfg.SendResolved {
 		w.logger.Debug("resolved webhook skipped", "status", event.Status)
-		return delivery.ErrSkipped
+		return target.ErrSkipped
 	}
 
 	event, body, err := w.renderer.RenderBody(event)
@@ -140,7 +140,7 @@ func (w Webhook) Notify(ctx context.Context, event monitor.Event) error {
 	}
 	defer resp.Body.Close() // nolint:errcheck
 
-	responseBody, truncated, err := readWebhookResponseBody(resp.Body, w.cfg.ResponseBodyLimit)
+	responseBody, truncated, err := readNotifierResponseBody(resp.Body, w.cfg.ResponseBodyLimit)
 	if err != nil {
 		w.logger.Error(
 			"webhook response read failed",
@@ -167,7 +167,7 @@ func (w Webhook) Notify(ctx context.Context, event monitor.Event) error {
 }
 
 // logSuccessfulResponse logs a successful webhook response according to the configured policy.
-func (w Webhook) logSuccessfulResponse(
+func (w Notifier) logSuccessfulResponse(
 	event monitor.Event,
 	resp *http.Response,
 	body string,
@@ -189,7 +189,7 @@ func (w Webhook) logSuccessfulResponse(
 }
 
 // responseLogFields builds flattened structured response fields for logging.
-func (w Webhook) responseLogFields(
+func (w Notifier) responseLogFields(
 	resp *http.Response,
 	body string,
 	truncated bool,
@@ -218,7 +218,7 @@ func (w Webhook) responseLogFields(
 }
 
 // responseError converts non-2xx HTTP responses into errors.
-func (w Webhook) responseError(resp *http.Response, body string, truncated bool) error {
+func (w Notifier) responseError(resp *http.Response, body string, truncated bool) error {
 	bodyForError := body
 	if truncated {
 		bodyForError += "...(truncated)"
@@ -230,8 +230,8 @@ func (w Webhook) responseError(resp *http.Response, body string, truncated bool)
 	return fmt.Errorf("%s returned %s: %s", w.label(), resp.Status, bodyForError)
 }
 
-// readWebhookResponseBody reads and caps webhook response bodies for logs and errors.
-func readWebhookResponseBody(body io.Reader, limit int) (responseBody string, truncated bool, err error) {
+// readNotifierResponseBody reads and caps webhook response bodies for logs and errors.
+func readNotifierResponseBody(body io.Reader, limit int) (responseBody string, truncated bool, err error) {
 	if limit < 0 {
 		return "", false, fmt.Errorf("response body limit must not be negative")
 	}
@@ -276,7 +276,7 @@ func cloneResponseHeaders(headers http.Header) (clone map[string][]string) {
 	return clone
 }
 
-// webhookClient builds the HTTP client used for webhook delivery.
+// webhookClient builds the HTTP client used for webhook target.
 func webhookClient(timeout time.Duration, skipInsecure bool) *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.Proxy = http.ProxyFromEnvironment
@@ -297,7 +297,7 @@ func webhookClient(timeout time.Duration, skipInsecure bool) *http.Client {
 }
 
 // label returns the human-readable target label used in errors.
-func (w Webhook) label() string {
+func (w Notifier) label() string {
 	if w.cfg.Name == "" {
 		return "webhook"
 	}

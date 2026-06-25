@@ -6,24 +6,26 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containeroo/overdue/internal/notification/delivery"
+	"github.com/containeroo/overdue/internal/notification/target"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestFanout(t *testing.T) {
+func TestFanoutNotify(t *testing.T) {
 	t.Parallel()
-	t.Run("continues fan out after errors and skips delivered on retry", func(t *testing.T) {
+
+	t.Run("continues fan out after errors and skips delivered targets on retry", func(t *testing.T) {
 		t.Parallel()
 
 		wantErr := errors.New("boom")
-		first := &recordingNotifier{err: wantErr}
-		second := &recordingNotifier{}
-		fanout := New([]delivery.Notifier{first, second})
+		first := &recordingTarget{err: wantErr, target: target.Target{Type: "email", Name: "primary"}}
+		second := &recordingTarget{target: target.Target{Type: "webhook", Name: "ops"}}
+		fanout := New([]target.Notifier{first, second})
 
 		err := fanout.Notify(context.Background(), testEvent())
 		require.Error(t, err)
 		assert.ErrorIs(t, err, wantErr)
+		assert.Contains(t, err.Error(), `email "primary"`)
 		assert.Equal(t, 1, first.called)
 		assert.Equal(t, 1, second.called)
 
@@ -33,85 +35,41 @@ func TestFanout(t *testing.T) {
 		assert.Equal(t, 1, second.called)
 	})
 
-	t.Run("reports target status without errors", func(t *testing.T) {
-		t.Parallel()
-
-		first := &recordingNotifier{
-			err:    errors.New("secret smtp failure"),
-			target: delivery.Target{Type: "email", Name: "email"},
-		}
-		second := &recordingNotifier{
-			target: delivery.Target{Type: "webhook", Name: "teams"},
-		}
-		fanout := New([]delivery.Notifier{first, second})
-
-		err := fanout.Notify(context.Background(), testEvent())
-		require.Error(t, err)
-
-		status := fanout.NotificationStatus()
-		assert.Equal(t, delivery.StatusPartialFailure, status.Status)
-		assert.Equal(t, 2, status.Total)
-		assert.Equal(t, 1, status.Delivered)
-		assert.Equal(t, 1, status.Failed)
-		assert.Equal(t, 1, status.Pending)
-		require.Len(t, status.Targets, 2)
-
-		assert.Equal(t, "email", status.Targets[0].Type)
-		assert.Equal(t, "email", status.Targets[0].Name)
-		assert.Equal(t, delivery.StatusFailed, status.Targets[0].Status)
-		assert.NotNil(t, status.Targets[0].LastAttemptAt)
-		assert.Nil(t, status.Targets[0].LastDeliveredAt)
-
-		assert.Equal(t, "webhook", status.Targets[1].Type)
-		assert.Equal(t, "teams", status.Targets[1].Name)
-		assert.Equal(t, delivery.StatusDelivered, status.Targets[1].Status)
-		assert.NotNil(t, status.Targets[1].LastAttemptAt)
-		assert.NotNil(t, status.Targets[1].LastDeliveredAt)
-	})
-
 	t.Run("reports delivered after retry succeeds", func(t *testing.T) {
 		t.Parallel()
 
-		first := &recordingNotifier{
-			err:    errors.New("temporary failure"),
-			target: delivery.Target{Type: "email", Name: "email"},
-		}
-		second := &recordingNotifier{
-			target: delivery.Target{Type: "webhook", Name: "teams"},
-		}
-		fanout := New([]delivery.Notifier{first, second})
+		first := &recordingTarget{err: errors.New("temporary failure"), target: target.Target{Type: "email", Name: "primary"}}
+		second := &recordingTarget{target: target.Target{Type: "webhook", Name: "ops"}}
+		fanout := New([]target.Notifier{first, second})
 
 		require.Error(t, fanout.Notify(context.Background(), testEvent()))
 		first.err = nil
 		require.NoError(t, fanout.Notify(context.Background(), testEvent()))
 
 		status := fanout.NotificationStatus()
-		assert.Equal(t, delivery.StatusDelivered, status.Status)
+		assert.Equal(t, target.StatusDelivered, status.Status)
 		assert.Equal(t, 2, status.Delivered)
 		assert.Equal(t, 0, status.Failed)
 		assert.Equal(t, 0, status.Pending)
 		require.Len(t, status.Targets, 2)
-		assert.Equal(t, delivery.StatusDelivered, status.Targets[0].Status)
-		assert.Equal(t, delivery.StatusDelivered, status.Targets[1].Status)
+		assert.Equal(t, target.StatusDelivered, status.Targets[0].Status)
+		assert.Equal(t, target.StatusDelivered, status.Targets[1].Status)
 	})
 
-	t.Run("reports skipped target as skipped", func(t *testing.T) {
+	t.Run("records skipped targets as successful for the current event", func(t *testing.T) {
 		t.Parallel()
 
-		notifier := &recordingNotifier{
-			err:    delivery.ErrSkipped,
-			target: delivery.Target{Type: "webhook", Name: "teams"},
-		}
-		fanout := New([]delivery.Notifier{notifier})
+		skipped := &recordingTarget{err: target.ErrSkipped, target: target.Target{Type: "webhook", Name: "ops"}}
+		fanout := New([]target.Notifier{skipped})
 
 		require.NoError(t, fanout.Notify(context.Background(), testEvent()))
 
 		status := fanout.NotificationStatus()
-		assert.Equal(t, delivery.StatusDelivered, status.Status)
+		assert.Equal(t, target.StatusDelivered, status.Status)
 		assert.Equal(t, 0, status.Delivered)
 		assert.Equal(t, 1, status.Skipped)
 		require.Len(t, status.Targets, 1)
-		assert.Equal(t, delivery.StatusSkipped, status.Targets[0].Status)
+		assert.Equal(t, target.StatusSkipped, status.Targets[0].Status)
 		assert.NotNil(t, status.Targets[0].LastAttemptAt)
 		assert.Nil(t, status.Targets[0].LastDeliveredAt)
 	})
@@ -119,7 +77,7 @@ func TestFanout(t *testing.T) {
 	t.Run("rejects event without notification id", func(t *testing.T) {
 		t.Parallel()
 
-		fanout := New([]delivery.Notifier{&recordingNotifier{}})
+		fanout := New([]target.Notifier{&recordingTarget{target: target.Target{Type: "webhook", Name: "ops"}}})
 		event := testEvent()
 		event.NotificationID = ""
 
@@ -130,49 +88,108 @@ func TestFanout(t *testing.T) {
 	})
 }
 
-func TestRetryError_Error(t *testing.T) {
+func TestFanoutNotificationStatus(t *testing.T) {
 	t.Parallel()
-	t.Run("returns wrapped error string", func(t *testing.T) {
+
+	t.Run("reports target status without errors", func(t *testing.T) {
 		t.Parallel()
 
-		err := &RetryError{Err: errors.New("boom")}
+		first := &recordingTarget{
+			err:    errors.New("secret smtp failure"),
+			target: target.Target{Type: "email", Name: "primary"},
+		}
+		second := &recordingTarget{
+			target: target.Target{Type: "webhook", Name: "ops"},
+		}
+		fanout := New([]target.Notifier{first, second})
 
-		assert.Equal(t, "boom", err.Error())
+		err := fanout.Notify(context.Background(), testEvent())
+		require.Error(t, err)
+
+		status := fanout.NotificationStatus()
+		assert.Equal(t, target.StatusPartialFailure, status.Status)
+		assert.Equal(t, 2, status.Total)
+		assert.Equal(t, 1, status.Delivered)
+		assert.Equal(t, 1, status.Failed)
+		assert.Equal(t, 1, status.Pending)
+		require.Len(t, status.Targets, 2)
+
+		assert.Equal(t, "email", status.Targets[0].Type)
+		assert.Equal(t, "primary", status.Targets[0].Name)
+		assert.Equal(t, target.StatusFailed, status.Targets[0].Status)
+		assert.NotNil(t, status.Targets[0].LastAttemptAt)
+		assert.Nil(t, status.Targets[0].LastDeliveredAt)
+
+		assert.Equal(t, "webhook", status.Targets[1].Type)
+		assert.Equal(t, "ops", status.Targets[1].Name)
+		assert.Equal(t, target.StatusDelivered, status.Targets[1].Status)
+		assert.NotNil(t, status.Targets[1].LastAttemptAt)
+		assert.NotNil(t, status.Targets[1].LastDeliveredAt)
+	})
+
+	t.Run("normalizes empty target metadata", func(t *testing.T) {
+		t.Parallel()
+
+		fanout := New([]target.Notifier{&recordingTarget{}})
+
+		status := fanout.NotificationStatus()
+
+		require.Len(t, status.Targets, 1)
+		assert.Equal(t, "unknown", status.Targets[0].Type)
+		assert.Equal(t, "unknown-0", status.Targets[0].Name)
+	})
+
+	t.Run("nil fanout is idle", func(t *testing.T) {
+		t.Parallel()
+
+		var fanout *Fanout
+
+		assert.Equal(t, target.Status{Status: target.StatusIdle}, fanout.NotificationStatus())
 	})
 }
 
-func TestRetryError_Unwrap(t *testing.T) {
+func TestFanoutTargets(t *testing.T) {
 	t.Parallel()
-	t.Run("returns wrapped error", func(t *testing.T) {
+
+	t.Run("returns configured targets in delivery order", func(t *testing.T) {
+		t.Parallel()
+
+		configured := []target.Notifier{
+			&recordingTarget{target: target.Target{Type: "webhook", Name: "ops"}},
+			&recordingTarget{target: target.Target{Type: "email", Name: "primary"}},
+		}
+		fanout := New(configured)
+		configured[0] = &recordingTarget{target: target.Target{Type: "changed", Name: "changed"}}
+
+		assert.Equal(t, []target.Target{
+			{Type: "webhook", Name: "ops"},
+			{Type: "email", Name: "primary"},
+		}, fanout.Targets())
+	})
+
+	t.Run("nil fanout returns nil", func(t *testing.T) {
+		t.Parallel()
+
+		var fanout *Fanout
+
+		assert.Nil(t, fanout.Targets())
+	})
+}
+
+func TestRetryError(t *testing.T) {
+	t.Parallel()
+
+	t.Run("exposes retry details", func(t *testing.T) {
 		t.Parallel()
 
 		want := errors.New("boom")
-		err := &RetryError{Err: want}
+		err := &RetryError{Err: want, RetryWait: 5 * time.Second, Delivered: 1, Failed: 2, Pending: 3}
 
+		assert.Equal(t, "boom", err.Error())
 		assert.ErrorIs(t, err.Unwrap(), want)
-	})
-}
-
-func TestRetryError_RetryAfter(t *testing.T) {
-	t.Parallel()
-	t.Run("returns retry wait", func(t *testing.T) {
-		t.Parallel()
-
-		err := &RetryError{RetryWait: 5 * time.Second}
-
 		assert.Equal(t, 5*time.Second, err.RetryAfter())
-	})
-}
-
-func TestRetryError_NotificationStats(t *testing.T) {
-	t.Parallel()
-	t.Run("returns notification stats", func(t *testing.T) {
-		t.Parallel()
-
-		err := &RetryError{Delivered: 1, Failed: 2, Pending: 3}
 
 		delivered, failed, pending := err.NotificationStats()
-
 		assert.Equal(t, 1, delivered)
 		assert.Equal(t, 2, failed)
 		assert.Equal(t, 3, pending)
@@ -181,23 +198,25 @@ func TestRetryError_NotificationStats(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	t.Parallel()
-	t.Run("copies notifiers and initializes defaults", func(t *testing.T) {
+
+	t.Run("copies targets and initializes defaults", func(t *testing.T) {
 		t.Parallel()
 
-		notifiers := []delivery.Notifier{&recordingNotifier{}}
+		targets := []target.Notifier{&recordingTarget{target: target.Target{Type: "webhook", Name: "ops"}}}
 
-		fanout := New(notifiers)
-		notifiers[0] = nil
+		fanout := New(targets)
+		targets[0] = nil
 
-		require.Len(t, fanout.Notifiers, 1)
-		require.NotNil(t, fanout.Notifiers[0])
+		require.Len(t, fanout.targets, 1)
+		require.NotNil(t, fanout.targets[0])
 		assert.Equal(t, defaultInitialNotificationBackoff, fanout.InitialBackoff)
 		assert.Equal(t, defaultMaxNotificationBackoff, fanout.MaxBackoff)
 	})
 }
 
-func TestFanout_nextBackoff(t *testing.T) {
+func TestFanoutNextBackoff(t *testing.T) {
 	t.Parallel()
+
 	t.Run("uses exponential backoff", func(t *testing.T) {
 		t.Parallel()
 
@@ -224,57 +243,42 @@ func TestFanout_nextBackoff(t *testing.T) {
 	})
 }
 
-func TestFanout_initialBackoffLocked(t *testing.T) {
+func TestFanoutConfiguredBackoff(t *testing.T) {
 	t.Parallel()
-	t.Run("uses configured value", func(t *testing.T) {
+
+	t.Run("uses configured initial and max values", func(t *testing.T) {
 		t.Parallel()
 
-		fanout := &Fanout{InitialBackoff: 5 * time.Second}
+		fanout := &Fanout{InitialBackoff: 5 * time.Second, MaxBackoff: 10 * time.Second}
 
 		assert.Equal(t, 5*time.Second, fanout.initialBackoffLocked())
+		assert.Equal(t, 10*time.Second, fanout.maxBackoffLocked())
 	})
 
-	t.Run("uses default value", func(t *testing.T) {
+	t.Run("uses defaults", func(t *testing.T) {
 		t.Parallel()
 
 		fanout := &Fanout{}
 
 		assert.Equal(t, defaultInitialNotificationBackoff, fanout.initialBackoffLocked())
-	})
-}
-
-func TestFanout_maxBackoffLocked(t *testing.T) {
-	t.Parallel()
-	t.Run("uses configured value", func(t *testing.T) {
-		t.Parallel()
-
-		fanout := &Fanout{MaxBackoff: 5 * time.Second}
-
-		assert.Equal(t, 5*time.Second, fanout.maxBackoffLocked())
-	})
-
-	t.Run("uses default value", func(t *testing.T) {
-		t.Parallel()
-
-		fanout := &Fanout{}
-
 		assert.Equal(t, defaultMaxNotificationBackoff, fanout.maxBackoffLocked())
 	})
 }
 
-func TestFanout_eventStateLocked(t *testing.T) {
+func TestFanoutEventStateLocked(t *testing.T) {
 	t.Parallel()
-	t.Run("tracks delivery and attempts for one event", func(t *testing.T) {
+
+	t.Run("tracks target and attempts for one event", func(t *testing.T) {
 		t.Parallel()
 
-		fanout := New([]delivery.Notifier{&recordingNotifier{}})
+		fanout := New([]target.Notifier{&recordingTarget{target: target.Target{Type: "webhook", Name: "ops"}}})
 		key := deliveryKey(testEvent().NotificationID)
 
 		fanout.mu.Lock()
 		state := fanout.eventStateLocked(key)
 		state.delivered[0] = true
 		state.attempts = 2
-		fanout.Notifiers = append(fanout.Notifiers, &recordingNotifier{})
+		fanout.targets = append(fanout.targets, &recordingTarget{target: target.Target{Type: "email", Name: "primary"}})
 		state = fanout.eventStateLocked(key)
 		fanout.mu.Unlock()
 

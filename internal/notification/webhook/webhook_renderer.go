@@ -1,4 +1,4 @@
-package targets
+package webhook
 
 import (
 	"bytes"
@@ -10,22 +10,22 @@ import (
 	"github.com/containeroo/overdue/internal/notification/render"
 )
 
-// WebhookRenderer renders monitor events into complete JSON webhook request bodies.
-type WebhookRenderer struct {
+// Renderer renders monitor events into complete JSON webhook request bodies.
+type Renderer struct {
 	content render.ContentRenderer
 }
 
-// NewWebhookRenderer parses templates used to render webhook notifications.
-func NewWebhookRenderer(templateFS fs.FS, source string, content render.ContentTemplates) (WebhookRenderer, error) {
+// NewRenderer parses templates used to render webhook notifications.
+func NewRenderer(templateFS fs.FS, source string, content render.ContentTemplates) (Renderer, error) {
 	renderer, err := render.NewContentRenderer(templateFS, source, content)
 	if err != nil {
-		return WebhookRenderer{}, err
+		return Renderer{}, err
 	}
-	return WebhookRenderer{content: renderer}, nil
+	return Renderer{content: renderer}, nil
 }
 
 // RenderBody returns a complete JSON webhook request body.
-func (r WebhookRenderer) RenderBody(event monitor.Event) (enriched monitor.Event, body []byte, err error) {
+func (r Renderer) RenderBody(event monitor.Event) (enriched monitor.Event, body []byte, err error) {
 	enriched, err = r.content.Enrich(event)
 	if err != nil {
 		return monitor.Event{}, nil, err
@@ -44,12 +44,12 @@ func (r WebhookRenderer) RenderBody(event monitor.Event) (enriched monitor.Event
 }
 
 // Validate renders alerting and resolved webhook notifications and validates JSON.
-func (r WebhookRenderer) Validate() error {
+func (r Renderer) Validate() error {
 	return r.ValidateWithEvents(render.SampleAlertingEvent(), render.SampleResolvedEvent())
 }
 
 // ValidateWithEvents renders alerting and resolved webhook notifications with caller-supplied sample events.
-func (r WebhookRenderer) ValidateWithEvents(alertingEvent, resolvedEvent monitor.Event) error {
+func (r Renderer) ValidateWithEvents(alertingEvent, resolvedEvent monitor.Event) error {
 	if _, _, err := r.RenderBody(alertingEvent); err != nil {
 		return fmt.Errorf("validate alerting webhook template: %w", err)
 	}

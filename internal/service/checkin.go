@@ -5,7 +5,7 @@ import (
 
 	"github.com/containeroo/overdue/internal/metrics"
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/delivery"
+	"github.com/containeroo/overdue/internal/notification/target"
 )
 
 // CheckInMonitor exposes the check-in monitor behavior used by the check-in service.
@@ -17,7 +17,7 @@ type CheckInMonitor interface {
 
 // notificationStatusMonitor exposes the notification delivery status used by the check-in service.
 type notificationStatusMonitor interface {
-	NotificationStatus() delivery.Status
+	NotificationStatus() target.Status
 }
 
 // CheckIn records incoming check-ins and owns application side effects such as metrics.
@@ -37,7 +37,7 @@ type RecordCheckInResult struct {
 type SnapshotResult struct {
 	CheckInName           string
 	Snapshot              monitor.Snapshot
-	NotificationStatus    delivery.Status
+	NotificationStatus    target.Status
 	HasNotificationStatus bool
 }
 

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/delivery"
+	"github.com/containeroo/overdue/internal/notification/target"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -120,7 +120,7 @@ func (r *Registry) IncCheckInReceived(checkIn string) {
 }
 
 // SetNotificationStatus updates per-target notification delivery status gauges.
-func (r *Registry) SetNotificationStatus(status delivery.Status) {
+func (r *Registry) SetNotificationStatus(status target.Status) {
 	for _, target := range status.Targets {
 		r.notificationLastStatus.WithLabelValues(target.Type, target.Name).Set(notificationStatusValue(target.Status))
 	}
@@ -143,10 +143,10 @@ func (r *Registry) setActiveMonitorPhase(checkIn string, phase monitor.Phase) {
 	}
 }
 
-// notificationStatusValue converts a delivery status to its metric value.
-func notificationStatusValue(status delivery.DeliveryStatus) float64 {
+// notificationStatusValue converts a target status to its metric value.
+func notificationStatusValue(status target.DeliveryStatus) float64 {
 	switch status {
-	case delivery.StatusDelivered, delivery.StatusSkipped:
+	case target.StatusDelivered, target.StatusSkipped:
 		return NotificationSuccess
 	default:
 		return NotificationError

@@ -13,7 +13,7 @@ import (
 	"github.com/containeroo/overdue/internal/logging"
 	"github.com/containeroo/overdue/internal/metrics"
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/notifier"
+	"github.com/containeroo/overdue/internal/notification"
 	"github.com/containeroo/overdue/internal/routes"
 	"github.com/containeroo/overdue/internal/scheduler"
 	"github.com/containeroo/overdue/internal/service"
@@ -56,9 +56,9 @@ func Run(
 		"initialPhase", monitor.PhaseScheduled,
 	)
 
-	if err := notifier.ValidateRuntimeTemplates(
+	if err := notification.ValidateTemplates(
 		templateFS,
-		flags.Notify,
+		flags.Notifications,
 		flags.CheckIn.Name,
 		flags.CheckIn.ExpectedEvery,
 		flags.CheckIn.AlertingDelay,
@@ -69,13 +69,13 @@ func Run(
 
 	reg := metrics.NewRegistry()
 
-	notify, err := notifier.New(
+	notify, err := notification.NewDispatcher(
 		templateFS,
-		flags.Notify,
+		flags.Notifications,
 		logger.With("component", "notify"),
 	)
 	if err != nil {
-		setupLog.Error("notifier setup error", "error", err)
+		setupLog.Error("notification setup error", "error", err)
 		return err
 	}
 

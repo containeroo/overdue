@@ -13,7 +13,7 @@ import (
 
 	"github.com/containeroo/overdue/internal/metrics"
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/delivery"
+	"github.com/containeroo/overdue/internal/notification/target"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -424,7 +424,7 @@ func TestScheduler_deliverDue(t *testing.T) {
 		assert.Contains(t, s.pending, "future")
 	})
 
-	t.Run("joins delivery errors", func(t *testing.T) {
+	t.Run("joins target errors", func(t *testing.T) {
 		t.Parallel()
 
 		now := time.Date(2026, 6, 19, 8, 0, 0, 0, time.UTC)
@@ -607,8 +607,8 @@ func TestScheduler_recordNotificationMetrics(t *testing.T) {
 		registry := metrics.NewRegistry()
 		s := &Scheduler{
 			metrics: registry,
-			notifier: statusNotifier{status: delivery.Status{Targets: []delivery.TargetStatus{
-				{Type: "webhook", Name: "ops", Status: delivery.StatusDelivered},
+			notifier: statusNotifier{status: target.Status{Targets: []target.TargetStatus{
+				{Type: "webhook", Name: "ops", Status: target.StatusDelivered},
 			}}},
 		}
 
@@ -796,16 +796,16 @@ func scrapeMetrics(t *testing.T, registry *metrics.Registry) string {
 }
 
 type statusNotifier struct {
-	status delivery.Status
+	status target.Status
 }
 
-// Notify implements delivery.Notifier for tests.
+// Notify implements target.Dispatcher for tests.
 func (n statusNotifier) Notify(context.Context, monitor.Event) error {
 	return nil
 }
 
-// NotificationStatus returns configured delivery status.
-func (n statusNotifier) NotificationStatus() delivery.Status {
+// NotificationStatus returns configured target status.
+func (n statusNotifier) NotificationStatus() target.Status {
 	return n.status
 }
 
@@ -829,8 +829,8 @@ func schedulerTestEvent(notificationID string) monitor.Event {
 // deliveryIDs returns notification IDs from pending deliveries.
 func deliveryIDs(deliveries []pendingDelivery) []string {
 	ids := make([]string, 0, len(deliveries))
-	for _, delivery := range deliveries {
-		ids = append(ids, delivery.event.NotificationID)
+	for _, target := range deliveries {
+		ids = append(ids, target.event.NotificationID)
 	}
 	return ids
 }
@@ -861,7 +861,7 @@ func (statsTestError) Error() string {
 	return "stats"
 }
 
-// NotificationStats returns test delivery stats.
+// NotificationStats returns test target stats.
 func (statsTestError) NotificationStats() (delivered int, failed int, pending int) {
 	return 2, 1, 3
 }

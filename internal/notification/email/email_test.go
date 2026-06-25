@@ -1,22 +1,22 @@
-package targets
+package email
 
 import (
 	"context"
 	"testing"
 
-	"github.com/containeroo/overdue/internal/notification/delivery"
 	"github.com/containeroo/overdue/internal/notification/render"
+	"github.com/containeroo/overdue/internal/notification/target"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewEmail(t *testing.T) {
+func TestNew(t *testing.T) {
 	t.Parallel()
 	t.Run("copies recipient list", func(t *testing.T) {
 		t.Parallel()
 
 		to := []string{"ops@example.test"}
-		email := NewEmail(EmailConfig{To: to}, EmailRenderer{}, testLogger())
+		email := New(Config{To: to}, Renderer{}, testLogger())
 		to[0] = "mutated@example.test"
 
 		assert.Equal(t, []string{"ops@example.test"}, email.Config().To)
@@ -26,7 +26,7 @@ func TestNewEmail(t *testing.T) {
 		t.Parallel()
 
 		headers := map[string]string{"X-Mailer": "overdue/dev"}
-		email := NewEmail(EmailConfig{Headers: headers}, EmailRenderer{}, testLogger())
+		email := New(Config{Headers: headers}, Renderer{}, testLogger())
 		headers["X-Mailer"] = "mutated"
 
 		assert.Equal(t, map[string]string{"X-Mailer": "overdue/dev"}, email.Config().Headers)
@@ -36,17 +36,17 @@ func TestNewEmail(t *testing.T) {
 		t.Parallel()
 
 		require.PanicsWithValue(t, "email logger must not be nil", func() {
-			_ = NewEmail(EmailConfig{}, EmailRenderer{}, nil)
+			_ = New(Config{}, Renderer{}, nil)
 		})
 	})
 }
 
-func TestEmailConfig(t *testing.T) {
+func TestConfig(t *testing.T) {
 	t.Parallel()
 	t.Run("returns defensive copy", func(t *testing.T) {
 		t.Parallel()
 
-		email := NewEmail(EmailConfig{To: []string{"ops@example.test"}}, EmailRenderer{}, testLogger())
+		email := New(Config{To: []string{"ops@example.test"}}, Renderer{}, testLogger())
 		cfg := email.Config()
 		cfg.To[0] = "mutated@example.test"
 
@@ -56,7 +56,7 @@ func TestEmailConfig(t *testing.T) {
 	t.Run("returns defensive header copy", func(t *testing.T) {
 		t.Parallel()
 
-		email := NewEmail(EmailConfig{Headers: map[string]string{"X-Mailer": "overdue/dev"}}, EmailRenderer{}, testLogger())
+		email := New(Config{Headers: map[string]string{"X-Mailer": "overdue/dev"}}, Renderer{}, testLogger())
 		cfg := email.Config()
 		cfg.Headers["X-Mailer"] = "mutated"
 
@@ -64,24 +64,36 @@ func TestEmailConfig(t *testing.T) {
 	})
 }
 
-func TestEmailNotify(t *testing.T) {
+func TestNotifierTarget(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns target metadata", func(t *testing.T) {
+		t.Parallel()
+
+		email := New(Config{Name: "primary"}, Renderer{}, testLogger())
+
+		assert.Equal(t, target.Target{Type: "email", Name: "primary"}, email.Target())
+	})
+}
+
+func TestNotifierNotify(t *testing.T) {
 	t.Parallel()
 	t.Run("skips resolved events when disabled", func(t *testing.T) {
 		t.Parallel()
 
-		email := NewEmail(EmailConfig{SendResolved: false}, EmailRenderer{}, testLogger())
+		email := New(Config{SendResolved: false}, Renderer{}, testLogger())
 
 		err := email.Notify(context.Background(), testResolvedEvent())
 
-		require.ErrorIs(t, err, delivery.ErrSkipped)
+		require.ErrorIs(t, err, target.ErrSkipped)
 	})
 
 	t.Run("returns render errors before smtp delivery", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := NewEmailRenderer(nil, writeTemplate(t, `{{ .Missing.Field }}`), "", "", render.DefaultContentTemplates())
+		renderer, err := NewRenderer(nil, writeTemplate(t, `{{ .Missing.Field }}`), "", "", render.DefaultContentTemplates())
 		require.NoError(t, err)
-		email := NewEmail(EmailConfig{
+		email := New(Config{
 			Host:         "127.0.0.1",
 			Port:         1,
 			From:         "overdue@example.test",
@@ -103,12 +115,12 @@ func TestEmailNotify(t *testing.T) {
 	})
 }
 
-func TestEmailSend(t *testing.T) {
+func TestNotifierSend(t *testing.T) {
 	t.Parallel()
 	t.Run("returns smtp dial errors", func(t *testing.T) {
 		t.Parallel()
 
-		email := NewEmail(EmailConfig{Host: "127.0.0.1", Port: 1}, EmailRenderer{}, testLogger())
+		email := New(Config{Host: "127.0.0.1", Port: 1}, Renderer{}, testLogger())
 
 		err := email.send([]string{"ops@example.test"}, []byte("body"))
 
@@ -116,10 +128,10 @@ func TestEmailSend(t *testing.T) {
 	})
 }
 
-func TestAppendEmailHeaders(t *testing.T) {
+func TestAppendNotifierHeaders(t *testing.T) {
 	t.Parallel()
 
-	lines := appendEmailHeaders([]string{"Subject: test"}, map[string]string{
+	lines := appendNotifierHeaders([]string{"Subject: test"}, map[string]string{
 		"X-Mailer": "overdue/dev",
 		"X-Zeta":   "last",
 	})
@@ -131,12 +143,12 @@ func TestAppendEmailHeaders(t *testing.T) {
 	}, lines)
 }
 
-func TestEmailTlsConfig(t *testing.T) {
+func TestNotifierTlsConfig(t *testing.T) {
 	t.Parallel()
 	t.Run("uses configured server name and verification mode", func(t *testing.T) {
 		t.Parallel()
 
-		email := NewEmail(EmailConfig{Host: "smtp.example.test", SkipTLSVerify: true}, EmailRenderer{}, testLogger())
+		email := New(Config{Host: "smtp.example.test", SkipTLSVerify: true}, Renderer{}, testLogger())
 
 		cfg := email.tlsConfig()
 
@@ -148,7 +160,7 @@ func TestEmailTlsConfig(t *testing.T) {
 	t.Run("keeps tls verification enabled by default", func(t *testing.T) {
 		t.Parallel()
 
-		email := NewEmail(EmailConfig{Host: "smtp.example.test"}, EmailRenderer{}, testLogger())
+		email := New(Config{Host: "smtp.example.test"}, Renderer{}, testLogger())
 
 		cfg := email.tlsConfig()
 

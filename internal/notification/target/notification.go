@@ -1,4 +1,4 @@
-package delivery
+package target
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 )
 
 type (
-	// DeliveryStatus describes aggregate or per-target notification delivery state.
+	// DeliveryStatus describes aggregate or per-target notification state.
 	DeliveryStatus string
 )
 
@@ -31,8 +31,10 @@ const (
 // ErrSkipped marks an intentionally skipped notification delivery.
 var ErrSkipped = errors.New("notification skipped")
 
-// Notifier sends check-in lifecycle events.
-type Notifier interface {
+// Dispatcher sends check-in lifecycle events.
+//
+// A Dispatcher may be a fan-out over many targets or a no-op dispatcher.
+type Dispatcher interface {
 	Notify(ctx context.Context, event monitor.Event) error
 }
 
@@ -42,12 +44,13 @@ type Target struct {
 	Name string
 }
 
-// Targeter is implemented by notifiers that expose public target metadata.
-type Targeter interface {
-	NotificationTarget() Target
+// Notifier sends check-in lifecycle events to one configured notification target.
+type Notifier interface {
+	Dispatcher
+	Target() Target
 }
 
-// StatusProvider is implemented by notifiers that expose delivery status.
+// StatusProvider is implemented by dispatchers that expose notification status.
 type StatusProvider interface {
 	NotificationStatus() Status
 }

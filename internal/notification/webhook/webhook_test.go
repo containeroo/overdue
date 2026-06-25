@@ -1,4 +1,4 @@
-package targets
+package webhook
 
 import (
 	"context"
@@ -11,27 +11,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containeroo/overdue/internal/notification/delivery"
 	"github.com/containeroo/overdue/internal/notification/render"
+	"github.com/containeroo/overdue/internal/notification/target"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewWebhook(t *testing.T) {
+func TestNew(t *testing.T) {
 	t.Parallel()
 	t.Run("builds webhook with defensive config copies and defaults", func(t *testing.T) {
 		t.Parallel()
 
 		headers := map[string]string{"Authorization": "Bearer token"}
 		customData := map[string]string{"channel": "#ops"}
-		webhook := NewWebhook(WebhookConfig{
+		webhook := New(Config{
 			Name:              "ops",
 			URL:               "https://example.test/webhook",
 			Headers:           headers,
 			ContentTemplates:  render.ContentTemplates{CustomData: customData},
 			Timeout:           5 * time.Second,
 			ResponseBodyLimit: 128,
-		}, WebhookRenderer{}, testLogger())
+		}, Renderer{}, testLogger())
 		headers["Authorization"] = "Bearer changed"
 		customData["channel"] = "#changed"
 
@@ -48,7 +48,7 @@ func TestNewWebhook(t *testing.T) {
 		t.Parallel()
 
 		require.PanicsWithValue(t, "webhook logger must not be nil", func() {
-			_ = NewWebhook(WebhookConfig{Timeout: time.Second}, WebhookRenderer{}, nil)
+			_ = New(Config{Timeout: time.Second}, Renderer{}, nil)
 		})
 	})
 
@@ -56,7 +56,7 @@ func TestNewWebhook(t *testing.T) {
 		t.Parallel()
 
 		require.PanicsWithValue(t, "webhook timeout must be greater than zero", func() {
-			_ = NewWebhook(WebhookConfig{}, WebhookRenderer{}, testLogger())
+			_ = New(Config{}, Renderer{}, testLogger())
 		})
 	})
 
@@ -64,21 +64,21 @@ func TestNewWebhook(t *testing.T) {
 		t.Parallel()
 
 		require.PanicsWithValue(t, "webhook response body limit must not be negative", func() {
-			_ = NewWebhook(WebhookConfig{Timeout: time.Second, ResponseBodyLimit: -1}, WebhookRenderer{}, testLogger())
+			_ = New(Config{Timeout: time.Second, ResponseBodyLimit: -1}, Renderer{}, testLogger())
 		})
 	})
 }
 
-func TestWebhookConfig(t *testing.T) {
+func TestConfig(t *testing.T) {
 	t.Parallel()
 	t.Run("returns defensive copy", func(t *testing.T) {
 		t.Parallel()
 
-		webhook := NewWebhook(WebhookConfig{
+		webhook := New(Config{
 			Headers:           map[string]string{"Authorization": "Bearer token"},
 			Timeout:           time.Second,
 			ResponseBodyLimit: 128,
-		}, WebhookRenderer{}, testLogger())
+		}, Renderer{}, testLogger())
 
 		cfg := webhook.Config()
 		cfg.Headers["Authorization"] = "Bearer changed"
@@ -87,18 +87,30 @@ func TestWebhookConfig(t *testing.T) {
 	})
 }
 
-func TestWebhookClient(t *testing.T) {
+func TestNotifierClient(t *testing.T) {
 	t.Parallel()
 	t.Run("returns configured client", func(t *testing.T) {
 		t.Parallel()
 
-		webhook := NewWebhook(WebhookConfig{Timeout: 3 * time.Second}, WebhookRenderer{}, testLogger())
+		webhook := New(Config{Timeout: 3 * time.Second}, Renderer{}, testLogger())
 
 		assert.Same(t, webhook.client, webhook.Client())
 	})
 }
 
-func TestWebhookNotify(t *testing.T) {
+func TestNotifierTarget(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns target metadata", func(t *testing.T) {
+		t.Parallel()
+
+		webhook := New(Config{Name: "ops", Timeout: time.Second}, Renderer{}, testLogger())
+
+		assert.Equal(t, target.Target{Type: "webhook", Name: "ops"}, webhook.Target())
+	})
+}
+
+func TestNotifierNotify(t *testing.T) {
 	t.Parallel()
 	t.Run("posts rendered json request", func(t *testing.T) {
 		t.Parallel()
@@ -119,7 +131,7 @@ func TestWebhookNotify(t *testing.T) {
 		}))
 		defer server.Close()
 
-		webhook := newTestWebhook(t, server.URL, LogResponseFull, 128)
+		webhook := newTestNotifier(t, server.URL, LogResponseFull, 128)
 
 		err := webhook.Notify(context.Background(), testEvent())
 
@@ -136,7 +148,7 @@ func TestWebhookNotify(t *testing.T) {
 		}))
 		defer server.Close()
 
-		webhook := newTestWebhook(t, server.URL, LogResponseSummary, 128)
+		webhook := newTestNotifier(t, server.URL, LogResponseSummary, 128)
 		webhook.cfg.Method = http.MethodPatch
 
 		err := webhook.Notify(context.Background(), testEvent())
@@ -153,12 +165,12 @@ func TestWebhookNotify(t *testing.T) {
 		}))
 		defer server.Close()
 
-		webhook := newTestWebhook(t, server.URL, LogResponseSummary, 128)
+		webhook := newTestNotifier(t, server.URL, LogResponseSummary, 128)
 		webhook.cfg.SendResolved = false
 
 		err := webhook.Notify(context.Background(), testResolvedEvent())
 
-		require.ErrorIs(t, err, delivery.ErrSkipped)
+		require.ErrorIs(t, err, target.ErrSkipped)
 		assert.Equal(t, int32(0), called.Load())
 	})
 
@@ -171,9 +183,9 @@ func TestWebhookNotify(t *testing.T) {
 		}))
 		defer server.Close()
 
-		renderer, err := NewWebhookRenderer(nil, writeTemplate(t, `not json`), render.DefaultContentTemplates())
+		renderer, err := NewRenderer(nil, writeTemplate(t, `not json`), render.DefaultContentTemplates())
 		require.NoError(t, err)
-		webhook := NewWebhook(WebhookConfig{
+		webhook := New(Config{
 			URL:               server.URL,
 			Timeout:           time.Second,
 			SendResolved:      true,
@@ -192,7 +204,7 @@ func TestWebhookNotify(t *testing.T) {
 
 		server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 		defer server.Close()
-		webhook := newTestWebhook(t, server.URL, LogResponseSummary, 128)
+		webhook := newTestNotifier(t, server.URL, LogResponseSummary, 128)
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 
@@ -204,7 +216,7 @@ func TestWebhookNotify(t *testing.T) {
 	t.Run("returns response body read errors", func(t *testing.T) {
 		t.Parallel()
 
-		webhook := newTestWebhook(t, "http://example.test", LogResponseSummary, 128)
+		webhook := newTestNotifier(t, "http://example.test", LogResponseSummary, 128)
 		webhook.client = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
 			return &http.Response{
 				Status:     "200 OK",
@@ -228,7 +240,7 @@ func TestWebhookNotify(t *testing.T) {
 		}))
 		defer server.Close()
 
-		webhook := newTestWebhook(t, server.URL, LogResponseBody, 4)
+		webhook := newTestNotifier(t, server.URL, LogResponseBody, 4)
 
 		err := webhook.Notify(context.Background(), testEvent())
 
@@ -238,26 +250,26 @@ func TestWebhookNotify(t *testing.T) {
 	})
 }
 
-func TestWebhookLogSuccessfulResponse(t *testing.T) {
+func TestNotifierLogSuccessfulResponse(t *testing.T) {
 	t.Parallel()
 	t.Run("supports all logging modes", func(t *testing.T) {
 		t.Parallel()
 
 		resp := &http.Response{Status: "200 OK", StatusCode: http.StatusOK, Header: http.Header{"X-Test": []string{"yes"}}}
 		for _, mode := range []LogResponse{LogResponseNone, LogResponseSummary, LogResponseBody, LogResponseFull, "unknown"} {
-			webhook := NewWebhook(WebhookConfig{Timeout: time.Second, LogResponse: mode}, WebhookRenderer{}, testLogger())
+			webhook := New(Config{Timeout: time.Second, LogResponse: mode}, Renderer{}, testLogger())
 
 			webhook.logSuccessfulResponse(testEvent(), resp, `{"ok":true}`, false, 10*time.Millisecond)
 		}
 	})
 }
 
-func TestWebhookResponseLogFields(t *testing.T) {
+func TestNotifierResponseLogFields(t *testing.T) {
 	t.Parallel()
 	t.Run("builds summary fields", func(t *testing.T) {
 		t.Parallel()
 
-		webhook := NewWebhook(WebhookConfig{Timeout: time.Second}, WebhookRenderer{}, testLogger())
+		webhook := New(Config{Timeout: time.Second}, Renderer{}, testLogger())
 		resp := &http.Response{Status: "200 OK", StatusCode: http.StatusOK}
 
 		fields := webhook.responseLogFields(resp, "", false, 10*time.Millisecond, LogResponseSummary)
@@ -270,7 +282,7 @@ func TestWebhookResponseLogFields(t *testing.T) {
 	t.Run("includes parsed body for body mode", func(t *testing.T) {
 		t.Parallel()
 
-		webhook := NewWebhook(WebhookConfig{Timeout: time.Second}, WebhookRenderer{}, testLogger())
+		webhook := New(Config{Timeout: time.Second}, Renderer{}, testLogger())
 		resp := &http.Response{Status: "200 OK", StatusCode: http.StatusOK}
 
 		fields := webhook.responseLogFields(resp, `{"ok":true}`, true, 10*time.Millisecond, LogResponseBody)
@@ -282,7 +294,7 @@ func TestWebhookResponseLogFields(t *testing.T) {
 	t.Run("includes headers for full mode", func(t *testing.T) {
 		t.Parallel()
 
-		webhook := NewWebhook(WebhookConfig{Timeout: time.Second}, WebhookRenderer{}, testLogger())
+		webhook := New(Config{Timeout: time.Second}, Renderer{}, testLogger())
 		resp := &http.Response{Status: "200 OK", StatusCode: http.StatusOK, Header: http.Header{"X-Test": []string{"yes"}}}
 
 		fields := webhook.responseLogFields(resp, `{"ok":true}`, false, 10*time.Millisecond, LogResponseFull)
@@ -291,12 +303,12 @@ func TestWebhookResponseLogFields(t *testing.T) {
 	})
 }
 
-func TestWebhookResponseError(t *testing.T) {
+func TestNotifierResponseError(t *testing.T) {
 	t.Parallel()
 	t.Run("uses generic label without name", func(t *testing.T) {
 		t.Parallel()
 
-		webhook := NewWebhook(WebhookConfig{Timeout: time.Second}, WebhookRenderer{}, testLogger())
+		webhook := New(Config{Timeout: time.Second}, Renderer{}, testLogger())
 		resp := &http.Response{Status: "500 Internal Server Error"}
 
 		err := webhook.responseError(resp, "", false)
@@ -308,7 +320,7 @@ func TestWebhookResponseError(t *testing.T) {
 	t.Run("includes named label and body", func(t *testing.T) {
 		t.Parallel()
 
-		webhook := NewWebhook(WebhookConfig{Name: "ops", Timeout: time.Second}, WebhookRenderer{}, testLogger())
+		webhook := New(Config{Name: "ops", Timeout: time.Second}, Renderer{}, testLogger())
 		resp := &http.Response{Status: "500 Internal Server Error"}
 
 		err := webhook.responseError(resp, "failed", true)
@@ -318,12 +330,12 @@ func TestWebhookResponseError(t *testing.T) {
 	})
 }
 
-func TestReadWebhookResponseBody(t *testing.T) {
+func TestReadNotifierResponseBody(t *testing.T) {
 	t.Parallel()
 	t.Run("reads and trims response body", func(t *testing.T) {
 		t.Parallel()
 
-		body, truncated, err := readWebhookResponseBody(strings.NewReader(" ok \n"), 10)
+		body, truncated, err := readNotifierResponseBody(strings.NewReader(" ok \n"), 10)
 
 		require.NoError(t, err)
 		assert.Equal(t, "ok", body)
@@ -333,7 +345,7 @@ func TestReadWebhookResponseBody(t *testing.T) {
 	t.Run("truncates response body", func(t *testing.T) {
 		t.Parallel()
 
-		body, truncated, err := readWebhookResponseBody(strings.NewReader("abcdef"), 3)
+		body, truncated, err := readNotifierResponseBody(strings.NewReader("abcdef"), 3)
 
 		require.NoError(t, err)
 		assert.Equal(t, "abc", body)
@@ -343,7 +355,7 @@ func TestReadWebhookResponseBody(t *testing.T) {
 	t.Run("rejects negative limit", func(t *testing.T) {
 		t.Parallel()
 
-		_, _, err := readWebhookResponseBody(strings.NewReader("abc"), -1)
+		_, _, err := readNotifierResponseBody(strings.NewReader("abc"), -1)
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "must not be negative")
@@ -352,14 +364,14 @@ func TestReadWebhookResponseBody(t *testing.T) {
 	t.Run("returns read errors", func(t *testing.T) {
 		t.Parallel()
 
-		_, _, err := readWebhookResponseBody(errReader{err: errors.New("boom")}, 10)
+		_, _, err := readNotifierResponseBody(errReader{err: errors.New("boom")}, 10)
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "boom")
 	})
 }
 
-func TestWebhookResponseBodyValue(t *testing.T) {
+func TestNotifierResponseBodyValue(t *testing.T) {
 	t.Parallel()
 	t.Run("returns nil for empty body", func(t *testing.T) {
 		t.Parallel()
@@ -402,7 +414,7 @@ func TestCloneResponseHeaders(t *testing.T) {
 	})
 }
 
-func TestWebhookClientConfig(t *testing.T) {
+func TestNotifierClientConfig(t *testing.T) {
 	t.Parallel()
 	t.Run("uses timeout and default tls verification", func(t *testing.T) {
 		t.Parallel()
@@ -428,12 +440,12 @@ func TestWebhookClientConfig(t *testing.T) {
 	})
 }
 
-func TestWebhookLabel(t *testing.T) {
+func TestNotifierLabel(t *testing.T) {
 	t.Parallel()
 	t.Run("returns generic label without name", func(t *testing.T) {
 		t.Parallel()
 
-		webhook := NewWebhook(WebhookConfig{Timeout: time.Second}, WebhookRenderer{}, testLogger())
+		webhook := New(Config{Timeout: time.Second}, Renderer{}, testLogger())
 
 		assert.Equal(t, "webhook", webhook.label())
 	})
@@ -441,7 +453,7 @@ func TestWebhookLabel(t *testing.T) {
 	t.Run("returns named label", func(t *testing.T) {
 		t.Parallel()
 
-		webhook := NewWebhook(WebhookConfig{Name: "ops", Timeout: time.Second}, WebhookRenderer{}, testLogger())
+		webhook := New(Config{Name: "ops", Timeout: time.Second}, Renderer{}, testLogger())
 
 		assert.Equal(t, `webhook "ops"`, webhook.label())
 	})
@@ -454,14 +466,14 @@ func (fn roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return fn(req)
 }
 
-// newTestWebhook builds a webhook using deterministic templates.
-func newTestWebhook(t *testing.T, url string, logResponse LogResponse, responseBodyLimit int) Webhook {
+// newTestNotifier builds a webhook using deterministic templates.
+func newTestNotifier(t *testing.T, url string, logResponse LogResponse, responseBodyLimit int) Notifier {
 	t.Helper()
 
-	renderer, err := NewWebhookRenderer(testTemplateFS(), "builtin:webhook", testContentTemplates())
+	renderer, err := NewRenderer(testTemplateFS(), "builtin:webhook", testContentTemplates())
 	require.NoError(t, err)
 
-	return NewWebhook(WebhookConfig{
+	return New(Config{
 		Name:              "ops",
 		URL:               url,
 		Headers:           map[string]string{"Authorization": "Bearer token"},

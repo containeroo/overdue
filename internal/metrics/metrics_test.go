@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/delivery"
+	"github.com/containeroo/overdue/internal/notification/target"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -93,9 +93,9 @@ func TestRegistry_SetNotificationStatus(t *testing.T) {
 		t.Parallel()
 
 		registry := NewRegistry()
-		registry.SetNotificationStatus(delivery.Status{Targets: []delivery.TargetStatus{
-			{Type: "webhook", Name: "ops", Status: delivery.StatusDelivered},
-			{Type: "email", Name: "primary", Status: delivery.StatusFailed},
+		registry.SetNotificationStatus(target.Status{Targets: []target.TargetStatus{
+			{Type: "webhook", Name: "ops", Status: target.StatusDelivered},
+			{Type: "email", Name: "primary", Status: target.StatusFailed},
 		}})
 
 		body := scrapeMetrics(t, registry)
@@ -140,16 +140,16 @@ func TestNotificationStatusValue(t *testing.T) {
 	t.Run("maps successful statuses", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, NotificationSuccess, notificationStatusValue(delivery.StatusDelivered))
-		assert.Equal(t, NotificationSuccess, notificationStatusValue(delivery.StatusSkipped))
+		assert.Equal(t, NotificationSuccess, notificationStatusValue(target.StatusDelivered))
+		assert.Equal(t, NotificationSuccess, notificationStatusValue(target.StatusSkipped))
 	})
 
 	t.Run("maps pending or failed statuses to error", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, NotificationError, notificationStatusValue(delivery.StatusFailed))
-		assert.Equal(t, NotificationError, notificationStatusValue(delivery.StatusPending))
-		assert.Equal(t, NotificationError, notificationStatusValue(delivery.StatusIdle))
+		assert.Equal(t, NotificationError, notificationStatusValue(target.StatusFailed))
+		assert.Equal(t, NotificationError, notificationStatusValue(target.StatusPending))
+		assert.Equal(t, NotificationError, notificationStatusValue(target.StatusIdle))
 	})
 }
 

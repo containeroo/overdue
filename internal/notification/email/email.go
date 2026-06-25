@@ -1,4 +1,4 @@
-package targets
+package email
 
 import (
 	"context"
@@ -12,12 +12,12 @@ import (
 	"time"
 
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/delivery"
 	"github.com/containeroo/overdue/internal/notification/render"
+	"github.com/containeroo/overdue/internal/notification/target"
 )
 
-// EmailConfig contains one configured email notification target.
-type EmailConfig struct {
+// Config contains one configured email notification target.
+type Config struct {
 	Name                    string
 	Host                    string
 	Port                    int
@@ -34,15 +34,15 @@ type EmailConfig struct {
 	Template                string
 }
 
-// Email sends check-in notifications via SMTP.
-type Email struct {
-	cfg      EmailConfig
-	renderer EmailRenderer
+// Notifier sends check-in notifications via SMTP.
+type Notifier struct {
+	cfg      Config
+	renderer Renderer
 	logger   *slog.Logger
 }
 
-// NewEmail creates a new Email notification target.
-func NewEmail(cfg EmailConfig, renderer EmailRenderer, logger *slog.Logger) Email {
+// New creates a new email notification target.
+func New(cfg Config, renderer Renderer, logger *slog.Logger) Notifier {
 	if logger == nil {
 		panic("email logger must not be nil")
 	}
@@ -51,7 +51,7 @@ func NewEmail(cfg EmailConfig, renderer EmailRenderer, logger *slog.Logger) Emai
 	cfg.Headers = maps.Clone(cfg.Headers)
 	cfg.ContentTemplates = cfg.ContentTemplates.Clone()
 
-	return Email{
+	return Notifier{
 		cfg:      cfg,
 		renderer: renderer,
 		logger:   logger,
@@ -59,7 +59,7 @@ func NewEmail(cfg EmailConfig, renderer EmailRenderer, logger *slog.Logger) Emai
 }
 
 // Config returns a copy of the target configuration.
-func (e Email) Config() EmailConfig {
+func (e Notifier) Config() Config {
 	cfg := e.cfg
 	cfg.To = append([]string(nil), cfg.To...)
 	cfg.Headers = maps.Clone(cfg.Headers)
@@ -67,19 +67,19 @@ func (e Email) Config() EmailConfig {
 	return cfg
 }
 
-// NotificationTarget returns public target metadata for status responses.
-func (e Email) NotificationTarget() delivery.Target {
-	return delivery.Target{
+// Target returns public target metadata for status responses.
+func (e Notifier) Target() target.Target {
+	return target.Target{
 		Type: "email",
 		Name: e.cfg.Name,
 	}
 }
 
-// Notify renders and sends an email delivery.
-func (e Email) Notify(_ context.Context, event monitor.Event) error {
+// Notify renders and sends an email target.
+func (e Notifier) Notify(_ context.Context, event monitor.Event) error {
 	if event.Resolved && !e.cfg.SendResolved {
 		e.logger.Debug("resolved email skipped", "status", event.Status)
-		return delivery.ErrSkipped
+		return target.ErrSkipped
 	}
 
 	message, err := e.renderer.Render(event)
@@ -94,7 +94,7 @@ func (e Email) Notify(_ context.Context, event monitor.Event) error {
 		"MIME-Version: 1.0",
 		"Content-Type: text/html; charset=utf-8",
 	}
-	headers = appendEmailHeaders(headers, e.cfg.Headers)
+	headers = appendNotifierHeaders(headers, e.cfg.Headers)
 
 	msg := strings.Join(append(headers,
 		"",
@@ -129,8 +129,8 @@ func (e Email) Notify(_ context.Context, event monitor.Event) error {
 	return nil
 }
 
-// appendEmailHeaders appends configured SMTP message headers in deterministic order.
-func appendEmailHeaders(lines []string, headers map[string]string) []string {
+// appendNotifierHeaders appends configured SMTP message headers in deterministic order.
+func appendNotifierHeaders(lines []string, headers map[string]string) []string {
 	if len(headers) == 0 {
 		return lines
 	}
@@ -148,7 +148,7 @@ func appendEmailHeaders(lines []string, headers map[string]string) []string {
 }
 
 // send delivers an SMTP message and applies the configured TLS behavior.
-func (e Email) send(to []string, msg []byte) error {
+func (e Notifier) send(to []string, msg []byte) error {
 	addr := fmt.Sprintf("%s:%d", e.cfg.Host, e.cfg.Port)
 	client, err := smtp.Dial(addr)
 	if err != nil {
@@ -193,7 +193,7 @@ func (e Email) send(to []string, msg []byte) error {
 }
 
 // tlsConfig returns the SMTP TLS configuration.
-func (e Email) tlsConfig() *tls.Config {
+func (e Notifier) tlsConfig() *tls.Config {
 	return &tls.Config{
 		ServerName:         e.cfg.Host,
 		InsecureSkipVerify: e.cfg.SkipTLSVerify, // nolint:gosec // Explicitly controlled by email smtp-skip-insecure flag.

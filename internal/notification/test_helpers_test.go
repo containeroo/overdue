@@ -1,16 +1,13 @@
-package notifier
+package notification
 
 import (
 	"io"
 	"log/slog"
-	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
 	"testing/fstest"
-	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,25 +32,6 @@ func testTemplateFS() fstest.MapFS {
 			Data: []byte(`{"channel":{{ json (.CustomData.channel | default "#alertmanager") }},"text":{{ json .Text }}}`),
 		},
 	}
-}
-
-// assertWebhookClient checks webhook client settings.
-func assertWebhookClient(t *testing.T, client *http.Client, wantTimeout time.Duration, wantSkipInsecure bool) {
-	t.Helper()
-
-	require.NotNil(t, client)
-	assert.Equal(t, wantTimeout, client.Timeout)
-
-	transport, ok := client.Transport.(*http.Transport)
-	require.True(t, ok)
-	require.NotNil(t, transport.Proxy)
-
-	if wantSkipInsecure {
-		require.NotNil(t, transport.TLSClientConfig)
-		assert.True(t, transport.TLSClientConfig.InsecureSkipVerify)
-		return
-	}
-	assert.False(t, transport.TLSClientConfig != nil && transport.TLSClientConfig.InsecureSkipVerify)
 }
 
 // testLogger returns a discard logger.

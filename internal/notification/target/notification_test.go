@@ -1,4 +1,4 @@
-package delivery
+package target
 
 import (
 	"context"
@@ -14,6 +14,7 @@ import (
 
 func TestDeliveryStatus(t *testing.T) {
 	t.Parallel()
+
 	t.Run("defines stable wire values", func(t *testing.T) {
 		t.Parallel()
 
@@ -28,28 +29,30 @@ func TestDeliveryStatus(t *testing.T) {
 
 func TestErrSkipped(t *testing.T) {
 	t.Parallel()
-	t.Run("is a reusable sentinel error", func(t *testing.T) {
+
+	t.Run("can be wrapped and matched", func(t *testing.T) {
 		t.Parallel()
 
-		err := fmt.Errorf("target skipped delivery: %w", ErrSkipped)
+		err := fmt.Errorf("notification delivery skipped: %w", ErrSkipped)
 
 		assert.Equal(t, "notification skipped", ErrSkipped.Error())
 		assert.ErrorIs(t, err, ErrSkipped)
 	})
 }
 
-func TestNotifier(t *testing.T) {
+func TestDispatcher(t *testing.T) {
 	t.Parallel()
+
 	t.Run("sends lifecycle events", func(t *testing.T) {
 		t.Parallel()
 
 		want := monitor.Event{NotificationID: "notification-1"}
-		notifier := notifierFunc(func(_ context.Context, event monitor.Event) error {
+		dispatcher := dispatcherFunc(func(_ context.Context, event monitor.Event) error {
 			assert.Equal(t, want, event)
 			return nil
 		})
 
-		err := notifier.Notify(context.Background(), want)
+		err := dispatcher.Notify(context.Background(), want)
 
 		require.NoError(t, err)
 	})
@@ -58,29 +61,41 @@ func TestNotifier(t *testing.T) {
 		t.Parallel()
 
 		wantErr := errors.New("boom")
-		notifier := notifierFunc(func(context.Context, monitor.Event) error {
+		dispatcher := dispatcherFunc(func(context.Context, monitor.Event) error {
 			return wantErr
 		})
 
-		err := notifier.Notify(context.Background(), monitor.Event{})
+		err := dispatcher.Notify(context.Background(), monitor.Event{})
 
 		require.ErrorIs(t, err, wantErr)
 	})
 }
 
-func TestTargeter(t *testing.T) {
+func TestNotifier(t *testing.T) {
 	t.Parallel()
-	t.Run("returns notification target metadata", func(t *testing.T) {
+
+	t.Run("combines delivery with target metadata", func(t *testing.T) {
 		t.Parallel()
 
-		provider := targetProvider{target: Target{Type: "webhook", Name: "ops"}}
+		wantEvent := monitor.Event{NotificationID: "notification-1"}
+		notifier := namedNotifier{
+			dispatcherFunc: dispatcherFunc(func(_ context.Context, event monitor.Event) error {
+				assert.Equal(t, wantEvent, event)
+				return nil
+			}),
+			target: Target{Type: "webhook", Name: "ops"},
+		}
 
-		assert.Equal(t, Target{Type: "webhook", Name: "ops"}, provider.NotificationTarget())
+		var targetNotifier Notifier = notifier
+
+		require.NoError(t, targetNotifier.Notify(context.Background(), wantEvent))
+		assert.Equal(t, Target{Type: "webhook", Name: "ops"}, targetNotifier.Target())
 	})
 }
 
 func TestStatusProvider(t *testing.T) {
 	t.Parallel()
+
 	t.Run("returns aggregate notification status", func(t *testing.T) {
 		t.Parallel()
 
@@ -104,18 +119,19 @@ func TestStatusProvider(t *testing.T) {
 	})
 }
 
-type notifierFunc func(context.Context, monitor.Event) error
+type dispatcherFunc func(context.Context, monitor.Event) error
 
-func (f notifierFunc) Notify(ctx context.Context, event monitor.Event) error {
+func (f dispatcherFunc) Notify(ctx context.Context, event monitor.Event) error {
 	return f(ctx, event)
 }
 
-type targetProvider struct {
+type namedNotifier struct {
+	dispatcherFunc
 	target Target
 }
 
-func (p targetProvider) NotificationTarget() Target {
-	return p.target
+func (n namedNotifier) Target() Target {
+	return n.target
 }
 
 type statusProvider struct {

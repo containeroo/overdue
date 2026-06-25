@@ -5,23 +5,23 @@ import (
 	"time"
 
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/delivery"
+	"github.com/containeroo/overdue/internal/notification/target"
 )
 
-type recordingNotifier struct {
+type recordingTarget struct {
 	called int
 	err    error
-	target delivery.Target
+	target target.Target
 }
 
 // Notify records calls for assertions.
-func (n *recordingNotifier) Notify(_ context.Context, _ monitor.Event) error {
+func (n *recordingTarget) Notify(_ context.Context, _ monitor.Event) error {
 	n.called++
 	return n.err
 }
 
-// NotificationTarget returns test target metadata.
-func (n *recordingNotifier) NotificationTarget() delivery.Target {
+// Target returns test target metadata.
+func (n *recordingTarget) Target() target.Target {
 	return n.target
 }
 

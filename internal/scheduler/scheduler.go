@@ -11,7 +11,7 @@ import (
 	"github.com/containeroo/overdue/internal/deadline"
 	"github.com/containeroo/overdue/internal/metrics"
 	"github.com/containeroo/overdue/internal/monitor"
-	"github.com/containeroo/overdue/internal/notification/delivery"
+	"github.com/containeroo/overdue/internal/notification/target"
 )
 
 // CheckInMonitor exposes the monitor behavior managed by the scheduler.
@@ -41,7 +41,7 @@ const defaultNotificationRetryAfter = time.Second
 type Scheduler struct {
 	mu           sync.Mutex
 	monitor      CheckInMonitor
-	notifier     delivery.Notifier
+	notifier     target.Dispatcher
 	logger       *slog.Logger
 	metrics      *metrics.Registry
 	rescheduleCh chan struct{}
@@ -54,7 +54,7 @@ type pendingDelivery struct {
 }
 
 // New creates a notification scheduler for a check-in monitor.
-func New(monitor CheckInMonitor, notifier delivery.Notifier, registry *metrics.Registry, logger *slog.Logger) *Scheduler {
+func New(monitor CheckInMonitor, notifier target.Dispatcher, registry *metrics.Registry, logger *slog.Logger) *Scheduler {
 	if monitor == nil {
 		panic("check-in monitor must not be nil")
 	}
@@ -85,7 +85,7 @@ func (s *Scheduler) CheckInName() string {
 	return s.monitor.CheckInName()
 }
 
-// RecordCheckIn records a check-in and schedules any resolved notification for delivery.
+// RecordCheckIn records a check-in and schedules any resolved notification for target.
 func (s *Scheduler) RecordCheckIn(at time.Time) monitor.RecordResult {
 	result := s.monitor.RecordCheckIn(at)
 	if result.ShouldNotify {
@@ -102,10 +102,10 @@ func (s *Scheduler) Snapshot() monitor.Snapshot {
 }
 
 // NotificationStatus returns aggregate notification delivery state.
-func (s *Scheduler) NotificationStatus() delivery.Status {
-	provider, ok := s.notifier.(delivery.StatusProvider)
+func (s *Scheduler) NotificationStatus() target.Status {
+	provider, ok := s.notifier.(target.StatusProvider)
 	if !ok {
-		return delivery.Status{Status: delivery.StatusIdle}
+		return target.Status{Status: target.StatusIdle}
 	}
 	return provider.NotificationStatus()
 }
@@ -172,9 +172,9 @@ func (s *Scheduler) nextDeadline() (deadline time.Time, active bool) {
 	}
 }
 
-// enqueue stores an event for delivery or retry.
+// enqueue stores an event for target or retry.
 func (s *Scheduler) enqueue(event monitor.Event, retryAt time.Time) {
-	key, err := delivery.NotificationKey(event)
+	key, err := target.NotificationKey(event)
 	if err != nil {
 		s.logger.Warn(
 			"notification event missing notification id; delivery skipped",
@@ -259,7 +259,7 @@ func (s *Scheduler) deliver(ctx context.Context, event monitor.Event, now time.T
 
 // clear removes delivered notification state.
 func (s *Scheduler) clear(event monitor.Event) {
-	key, err := delivery.NotificationKey(event)
+	key, err := target.NotificationKey(event)
 	if err != nil {
 		return
 	}
@@ -286,9 +286,9 @@ func (s *Scheduler) nextRetryDeadline() (deadline time.Time, active bool) {
 	return deadline, active
 }
 
-// recordNotificationMetrics updates metrics from the current notifier delivery status.
+// recordNotificationMetrics updates metrics from the current notifier target status.
 func (s *Scheduler) recordNotificationMetrics() {
-	provider, ok := s.notifier.(delivery.StatusProvider)
+	provider, ok := s.notifier.(target.StatusProvider)
 	if !ok {
 		return
 	}
@@ -322,7 +322,7 @@ func notificationRetryAfter(err error) time.Duration {
 	return defaultNotificationRetryAfter
 }
 
-// notificationStats returns delivery stats from a notification error.
+// notificationStats returns target stats from a notification error.
 func notificationStats(err error) (delivered, failed, pending int) {
 	if statsErr, ok := errors.AsType[notificationStatsError](err); ok {
 		return statsErr.NotificationStats()

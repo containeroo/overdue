@@ -1,13 +1,13 @@
 package flag
 
 import (
-	"github.com/containeroo/overdue/internal/notification/render"
+	"github.com/containeroo/overdue/internal/config"
 	"github.com/containeroo/tinyflags"
 )
 
 // ParseArgs parses CLI arguments and OVERDUE-prefixed environment variables.
-func ParseArgs(args []string, version string) (Config, error) {
-	cfg := Config{}
+func ParseArgs(args []string, version string) (config.Config, error) {
+	cfg := config.Config{}
 
 	tf := tinyflags.NewFlagSet("overdue", tinyflags.ContinueOnError)
 	tf.Version(version)
@@ -18,16 +18,12 @@ func ParseArgs(args []string, version string) (Config, error) {
 	registerEmailFlags(tf)
 
 	if err := tf.Parse(args); err != nil {
-		return Config{}, err
+		return config.Config{}, err
 	}
 
-	notifyConfig, err := notifyConfigFromDynamicGroups(version, tf.DynamicGroups())
-	if err != nil {
-		return Config{}, err
+	if err := config.FromFlags(&cfg, version, tf.DynamicGroups()); err != nil {
+		return config.Config{}, err
 	}
-	notifyConfig.App = render.NewAppData(version, cfg.PublicURL, cfg.CheckIn.Path)
-
-	cfg.Notify = notifyConfig
 
 	return cfg, nil
 }
