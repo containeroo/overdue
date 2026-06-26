@@ -2,8 +2,9 @@ package notify
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
 	"testing"
-	"testing/fstest"
 	"time"
 
 	kit "github.com/containeroo/notifykit/notify"
@@ -20,7 +21,9 @@ func TestReceiversFromConfig(t *testing.T) {
 	t.Run("keeps webhook and email receivers with the same name separate", func(t *testing.T) {
 		t.Parallel()
 
-		receivers, resolvedReceivers, err := ReceiversFromConfig(testTemplateFS(), config.Notifications{
+		templatePaths := writeReceiverTemplates(t)
+
+		receivers, resolvedReceivers, err := ReceiversFromConfig(nil, config.Notifications{
 			App: config.AppData{Version: "dev"},
 			Webhooks: []config.WebhookConfig{
 				{
@@ -30,7 +33,7 @@ func TestReceiversFromConfig(t *testing.T) {
 					Timeout:           time.Second,
 					SendResolved:      true,
 					SubjectTemplate:   config.DefaultSubjectTemplate(),
-					Template:          "webhook.tmpl",
+					Template:          templatePaths.webhook,
 					ResponseBodyLimit: 128,
 				},
 			},
@@ -43,7 +46,7 @@ func TestReceiversFromConfig(t *testing.T) {
 					From:            "overdue@example.test",
 					To:              []string{"ops@example.test"},
 					SubjectTemplate: config.DefaultSubjectTemplate(),
-					Template:        "email.tmpl",
+					Template:        templatePaths.email,
 				},
 			},
 		}, nil)
@@ -113,14 +116,23 @@ func TestEmailReceiverID(t *testing.T) {
 	assert.Equal(t, kit.ReceiverID("email.ops"), emailReceiverID("ops"))
 }
 
-// testTemplateFS returns notification template fixtures.
-func testTemplateFS() fstest.MapFS {
-	return fstest.MapFS{
-		"webhook.tmpl": {
-			Data: []byte(`{"text":{{ json .Text }}}`),
-		},
-		"email.tmpl": {
-			Data: []byte(`{{ .Title }}`),
-		},
+type receiverTemplatePaths struct {
+	webhook string
+	email   string
+}
+
+// writeReceiverTemplates writes real filesystem template fixtures.
+func writeReceiverTemplates(t *testing.T) receiverTemplatePaths {
+	t.Helper()
+
+	dir := t.TempDir()
+	paths := receiverTemplatePaths{
+		webhook: filepath.Join(dir, "webhook.tmpl"),
+		email:   filepath.Join(dir, "email.tmpl"),
 	}
+
+	require.NoError(t, os.WriteFile(paths.webhook, []byte(`{"text":{{ json .Text }}}`), 0o600))
+	require.NoError(t, os.WriteFile(paths.email, []byte(`{{ .Title }}`), 0o600))
+
+	return paths
 }

@@ -1,6 +1,7 @@
 package flag
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -104,8 +105,8 @@ func TestParseArgs(t *testing.T) {
 		}, "dev")
 
 		require.NoError(t, err)
-		webhook := requireWebhookConfig(t, cfg.Notifications.Webhooks, "ops")
-		assert.Equal(t, "builtin:slack-incoming-webhook", webhook.Template)
+		require.Len(t, cfg.Notifications.Webhooks, 1)
+		assert.Equal(t, "builtin:slack-incoming-webhook", cfg.Notifications.Webhooks[0].Template)
 	})
 
 	t.Run("accepts builtin email template without checking embedded fs", func(t *testing.T) {
@@ -122,12 +123,14 @@ func TestParseArgs(t *testing.T) {
 		}, "dev")
 
 		require.NoError(t, err)
-		email := requireEmailConfig(t, cfg.Notifications.Emails, "primary")
-		assert.Equal(t, "builtin:email-html", email.Template)
+		require.Len(t, cfg.Notifications.Emails, 1)
+		assert.Equal(t, "builtin:email-html", cfg.Notifications.Emails[0].Template)
 	})
 
 	t.Run("command line overrides dynamic env", func(t *testing.T) {
-		templatePath := writeTemplate(t, `{"text":{{ json .Text }}}`)
+		templatePath := filepath.Join(t.TempDir(), "webhook.tmpl")
+		require.NoError(t, os.WriteFile(templatePath, []byte(`{"text":{{ json .Text }}}`), 0o600))
+
 		t.Setenv("OVERDUE__WEBHOOK_OPS_URL", "https://example.test/env")
 		t.Setenv("OVERDUE__WEBHOOK_OPS_METHOD", "PUT")
 		t.Setenv("OVERDUE__WEBHOOK_OPS_TIMEOUT", "3s")
@@ -141,9 +144,9 @@ func TestParseArgs(t *testing.T) {
 		}, "dev")
 
 		require.NoError(t, err)
-		webhook := requireWebhookConfig(t, cfg.Notifications.Webhooks, "ops")
-		assert.Equal(t, "https://example.test/cli", webhook.URL)
-		assert.Equal(t, 7*time.Second, webhook.Timeout)
+		require.Len(t, cfg.Notifications.Webhooks, 1)
+		assert.Equal(t, "https://example.test/cli", cfg.Notifications.Webhooks[0].URL)
+		assert.Equal(t, 7*time.Second, cfg.Notifications.Webhooks[0].Timeout)
 	})
 
 	t.Run("rejects removed check-in history size flag", func(t *testing.T) {
@@ -260,8 +263,8 @@ func TestParseArgs(t *testing.T) {
 		}, "dev")
 
 		require.NoError(t, err)
-		webhook := requireWebhookConfig(t, cfg.Notifications.Webhooks, "ops")
-		assert.Equal(t, path, webhook.Template)
+		require.Len(t, cfg.Notifications.Webhooks, 1)
+		assert.Equal(t, path, cfg.Notifications.Webhooks[0].Template)
 	})
 
 	t.Run("rejects unsupported dynamic field", func(t *testing.T) {
