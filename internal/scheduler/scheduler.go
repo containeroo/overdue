@@ -7,7 +7,6 @@ import (
 
 	kit "github.com/containeroo/notifykit/notify"
 	"github.com/containeroo/overdue/internal/deadline"
-	"github.com/containeroo/overdue/internal/metrics"
 	"github.com/containeroo/overdue/internal/monitor"
 	overduenotify "github.com/containeroo/overdue/internal/notify"
 )
@@ -21,13 +20,21 @@ type CheckInMonitor interface {
 	NextDeadline() (deadline time.Time, active bool)
 }
 
+// MetricsRecorder records scheduler-owned monitor and notification metrics.
+type MetricsRecorder interface {
+	SetMonitorSnapshot(checkIn string, snapshot monitor.Snapshot)
+	IncNotificationQueued(checkIn string, status monitor.EventStatus)
+	IncNotificationSkipped(checkIn string, status monitor.EventStatus, reason string)
+	IncNotificationQueueFailed(checkIn string, status monitor.EventStatus)
+}
+
 // Scheduler advances a check-in monitor and enqueues lifecycle notifications.
 type Scheduler struct {
 	monitor           CheckInMonitor
 	notifier          kit.Notifier
 	resolvedReceivers []kit.ReceiverID
 	logger            *slog.Logger
-	metrics           *metrics.Registry
+	metrics           MetricsRecorder
 	rescheduleCh      chan struct{}
 }
 
@@ -36,7 +43,7 @@ func New(
 	monitor CheckInMonitor,
 	notifier kit.Notifier,
 	resolvedReceivers []kit.ReceiverID,
-	registry *metrics.Registry,
+	registry MetricsRecorder,
 	logger *slog.Logger,
 ) *Scheduler {
 	if monitor == nil {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/containeroo/overdue/internal/metrics"
 	"github.com/containeroo/overdue/internal/monitor"
 )
 
@@ -22,10 +21,15 @@ type contextCheckInMonitor interface {
 	RecordCheckInContext(ctx context.Context, at time.Time) monitor.RecordResult
 }
 
+// MetricsRecorder records check-in service metrics.
+type MetricsRecorder interface {
+	IncCheckInReceived(checkIn string)
+}
+
 // CheckIn records incoming check-ins and owns API-side metrics.
 type CheckIn struct {
 	checkInMonitor CheckInMonitor
-	metrics        *metrics.Registry
+	metrics        MetricsRecorder
 }
 
 // RecordCheckInResult describes the outcome of recording a check-in.
@@ -42,7 +46,7 @@ type SnapshotResult struct {
 }
 
 // NewCheckIn creates a check-in service.
-func NewCheckIn(checkInMonitor CheckInMonitor, registry *metrics.Registry) *CheckIn {
+func NewCheckIn(checkInMonitor CheckInMonitor, registry MetricsRecorder) *CheckIn {
 	if checkInMonitor == nil {
 		panic("check-in monitor must not be nil")
 	}
