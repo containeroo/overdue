@@ -21,7 +21,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("mounts configured check-in route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/heartbeat", "/overdue", "")
+		h := testRouter("/heartbeat", "/overdue", false, "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/overdue/heartbeat", nil))
@@ -30,10 +30,33 @@ func TestNewRouter(t *testing.T) {
 		assert.Contains(t, rec.Body.String(), `"status":"ok"`)
 	})
 
+	t.Run("rejects get check-in route by default", func(t *testing.T) {
+		t.Parallel()
+
+		h := testRouter("/checkin", "/overdue", false, "")
+
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/checkin", nil))
+
+		require.Equal(t, http.StatusMethodNotAllowed, rec.Code)
+	})
+
+	t.Run("mounts get check-in route when enabled", func(t *testing.T) {
+		t.Parallel()
+
+		h := testRouter("/checkin", "/overdue", true, "")
+
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/checkin", nil))
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Contains(t, rec.Body.String(), `"status":"ok"`)
+	})
+
 	t.Run("does not mount unconfigured routes", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/heartbeat", "/overdue", "")
+		h := testRouter("/heartbeat", "/overdue", false, "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/overdue/old-route", nil))
@@ -44,7 +67,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("does not serve root web ui", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/heartbeat", "/overdue", "")
+		h := testRouter("/heartbeat", "/overdue", false, "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/", nil))
@@ -55,7 +78,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("does not mount removed history route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/checkin", "/overdue", "")
+		h := testRouter("/checkin", "/overdue", false, "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/history", nil))
@@ -66,7 +89,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("mounts metrics route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/checkin", "/overdue", "")
+		h := testRouter("/checkin", "/overdue", false, "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/metrics", nil))
@@ -78,7 +101,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("mounts status route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/checkin", "/overdue", "")
+		h := testRouter("/checkin", "/overdue", false, "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/status", nil))
@@ -90,7 +113,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("mounts version route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/checkin", "/overdue", "")
+		h := testRouter("/checkin", "/overdue", false, "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/version", nil))
@@ -102,7 +125,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("mounts healthz route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/checkin", "/overdue", "")
+		h := testRouter("/checkin", "/overdue", false, "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/healthz", nil))
@@ -114,7 +137,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("mounts post healthz route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/checkin", "/overdue", "")
+		h := testRouter("/checkin", "/overdue", false, "")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/overdue/healthz", nil))
@@ -123,10 +146,34 @@ func TestNewRouter(t *testing.T) {
 		assert.Equal(t, "ok", rec.Body.String())
 	})
 
+	t.Run("mounts readyz route", func(t *testing.T) {
+		t.Parallel()
+
+		h := testRouter("/checkin", "/overdue", false, "")
+
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/readyz", nil))
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "ok", rec.Body.String())
+	})
+
+	t.Run("mounts post readyz route", func(t *testing.T) {
+		t.Parallel()
+
+		h := testRouter("/checkin", "/overdue", false, "")
+
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/overdue/readyz", nil))
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "ok", rec.Body.String())
+	})
+
 	t.Run("rejects unauthorized status route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/checkin", "/overdue", "secret")
+		h := testRouter("/checkin", "/overdue", false, "secret")
 
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/status", nil))
@@ -138,7 +185,7 @@ func TestNewRouter(t *testing.T) {
 	t.Run("accepts authorized check-in route", func(t *testing.T) {
 		t.Parallel()
 
-		h := testRouter("/checkin", "/overdue", "secret")
+		h := testRouter("/checkin", "/overdue", false, "secret")
 		req := httptest.NewRequest(http.MethodPost, "/overdue/checkin", nil)
 		req.Header.Set("Authorization", "Bearer secret")
 		rec := httptest.NewRecorder()
@@ -151,7 +198,7 @@ func TestNewRouter(t *testing.T) {
 }
 
 // testRouter builds a router fixture.
-func testRouter(checkInPath, routePrefix, authToken string) http.Handler {
+func testRouter(checkInPath, routePrefix string, allowGETCheckIn bool, authToken string) http.Handler {
 	logger := testLogger()
 	checkInMonitor := monitor.New("default", time.Minute, time.Second, logger)
 	registry := metrics.NewRegistry()
@@ -159,7 +206,7 @@ func testRouter(checkInPath, routePrefix, authToken string) http.Handler {
 	svc := service.NewCheckIn(checkInMonitor, registry)
 	api := handler.NewAPI(authToken, svc, registry, false, "dev", "none", logger)
 
-	return NewRouter(checkInPath, routePrefix, api)
+	return NewRouter(checkInPath, routePrefix, allowGETCheckIn, api)
 }
 
 // testLogger returns a discard logger.

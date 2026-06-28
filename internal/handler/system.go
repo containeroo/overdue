@@ -9,6 +9,13 @@ func (a *API) Healthz() http.HandlerFunc {
 	}
 }
 
+// Readyz returns a lightweight readiness endpoint.
+func (a *API) Readyz() http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		a.respondText(w, http.StatusOK, "ok")
+	}
+}
+
 // Metrics returns the Prometheus metrics endpoint handler.
 func (a *API) Metrics() http.Handler {
 	return a.metrics.Metrics()

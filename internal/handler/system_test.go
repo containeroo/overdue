@@ -26,6 +26,22 @@ func TestAPI_Healthz(t *testing.T) {
 	})
 }
 
+func TestAPI_Readyz(t *testing.T) {
+	t.Parallel()
+	t.Run("returns ok", func(t *testing.T) {
+		t.Parallel()
+
+		api, _ := testAPI("", testLogger())
+		rec := httptest.NewRecorder()
+
+		api.Readyz().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/readyz", nil))
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "text/plain; charset=utf-8", rec.Header().Get("Content-Type"))
+		assert.Equal(t, "ok", rec.Body.String())
+	})
+}
+
 func TestAPI_Metrics(t *testing.T) {
 	t.Parallel()
 	t.Run("returns metrics", func(t *testing.T) {
