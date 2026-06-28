@@ -95,7 +95,7 @@ func Run(
 	sched := scheduler.New(mon, notifyManager, resolvedReceivers, reg, logger.With("component", "scheduler"))
 	if flags.CheckIn.StartActive {
 		activatedAt := time.Now()
-		sched.RecordCheckIn(activatedAt)
+		sched.RecordCheckInContext(ctx, activatedAt)
 		setupLog.Info(
 			"check-in monitor activated at startup",
 			"activatedAt", activatedAt,

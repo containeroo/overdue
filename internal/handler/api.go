@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"log/slog"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 
 // CheckInService exposes the application behavior used by HTTP handler.
 type CheckInService interface {
-	RecordCheckIn(at time.Time) service.RecordCheckInResult
+	RecordCheckIn(ctx context.Context, at time.Time) service.RecordCheckInResult
 	Snapshot() service.SnapshotResult
 }
 

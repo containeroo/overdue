@@ -86,6 +86,24 @@ func TestRegistry_IncCheckInReceived(t *testing.T) {
 	})
 }
 
+func TestRegistry_NotificationMetrics(t *testing.T) {
+	t.Parallel()
+	t.Run("increments notification counters", func(t *testing.T) {
+		t.Parallel()
+
+		registry := NewRegistry()
+
+		registry.IncNotificationQueued("prometheus", monitor.StatusAlerting)
+		registry.IncNotificationSkipped("prometheus", monitor.StatusResolved, "no_resolved_receivers")
+		registry.IncNotificationQueueFailed("prometheus", monitor.StatusAlerting)
+
+		body := scrapeMetrics(t, registry)
+		assert.Contains(t, body, `overdue_notifications_queued_total{check_in="prometheus",status="alerting"} 1`)
+		assert.Contains(t, body, `overdue_notifications_skipped_total{check_in="prometheus",reason="no_resolved_receivers",status="resolved"} 1`)
+		assert.Contains(t, body, `overdue_notifications_queue_failed_total{check_in="prometheus",status="alerting"} 1`)
+	})
+}
+
 func TestRegistry_setActiveMonitorPhase(t *testing.T) {
 	t.Parallel()
 	t.Run("sets only current phase active", func(t *testing.T) {

@@ -29,6 +29,9 @@ type Registry struct {
 	monitorLastCheckInTimestamp *prometheus.GaugeVec
 	monitorExpectedByTimestamp  *prometheus.GaugeVec
 	monitorAlertingAtTimestamp  *prometheus.GaugeVec
+	notificationsQueuedTotal    *prometheus.CounterVec
+	notificationsSkippedTotal   *prometheus.CounterVec
+	notificationsQueueFailed    *prometheus.CounterVec
 }
 
 // NewRegistry builds a new Prometheus metrics registry.
@@ -68,6 +71,27 @@ func NewRegistry() *Registry {
 		},
 		[]string{"check_in"},
 	)
+	notificationsQueuedTotal := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "overdue_notifications_queued_total",
+			Help: "Total number of notifications accepted by the queue per monitor and status.",
+		},
+		[]string{"check_in", "status"},
+	)
+	notificationsSkippedTotal := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "overdue_notifications_skipped_total",
+			Help: "Total number of notifications skipped before queueing per monitor, status, and reason.",
+		},
+		[]string{"check_in", "status", "reason"},
+	)
+	notificationsQueueFailed := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "overdue_notifications_queue_failed_total",
+			Help: "Total number of notifications that failed to enqueue per monitor and status.",
+		},
+		[]string{"check_in", "status"},
+	)
 
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(
@@ -76,6 +100,9 @@ func NewRegistry() *Registry {
 		monitorLastCheckInTimestamp,
 		monitorExpectedByTimestamp,
 		monitorAlertingAtTimestamp,
+		notificationsQueuedTotal,
+		notificationsSkippedTotal,
+		notificationsQueueFailed,
 	)
 
 	return &Registry{
@@ -85,6 +112,9 @@ func NewRegistry() *Registry {
 		monitorLastCheckInTimestamp: monitorLastCheckInTimestamp,
 		monitorExpectedByTimestamp:  monitorExpectedByTimestamp,
 		monitorAlertingAtTimestamp:  monitorAlertingAtTimestamp,
+		notificationsQueuedTotal:    notificationsQueuedTotal,
+		notificationsSkippedTotal:   notificationsSkippedTotal,
+		notificationsQueueFailed:    notificationsQueueFailed,
 	}
 }
 
@@ -99,6 +129,21 @@ func (r *Registry) SetMonitorSnapshot(checkIn string, snapshot monitor.Snapshot)
 // IncCheckInReceived increments the received check-in counter for a monitor.
 func (r *Registry) IncCheckInReceived(checkIn string) {
 	r.checkInsReceivedTotal.WithLabelValues(checkIn).Inc()
+}
+
+// IncNotificationQueued increments the queued notification counter.
+func (r *Registry) IncNotificationQueued(checkIn string, status monitor.EventStatus) {
+	r.notificationsQueuedTotal.WithLabelValues(checkIn, string(status)).Inc()
+}
+
+// IncNotificationSkipped increments the skipped notification counter.
+func (r *Registry) IncNotificationSkipped(checkIn string, status monitor.EventStatus, reason string) {
+	r.notificationsSkippedTotal.WithLabelValues(checkIn, string(status), reason).Inc()
+}
+
+// IncNotificationQueueFailed increments the queue failure notification counter.
+func (r *Registry) IncNotificationQueueFailed(checkIn string, status monitor.EventStatus) {
+	r.notificationsQueueFailed.WithLabelValues(checkIn, string(status)).Inc()
 }
 
 // Metrics returns the Prometheus metrics handler.

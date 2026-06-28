@@ -14,7 +14,7 @@ func (a *API) CheckIn() http.HandlerFunc {
 		}
 
 		now := a.nowFn()
-		result := a.service.RecordCheckIn(now)
+		result := a.service.RecordCheckIn(r.Context(), now)
 		a.logCheckInReceived(result, now, request)
 
 		if a.wantsDetails(r) {

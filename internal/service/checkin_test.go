@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"net/http"
@@ -66,11 +67,26 @@ func TestService_RecordCheckIn(t *testing.T) {
 		checkInMonitor := monitor.New("prometheus", time.Minute, time.Second, testLogger())
 		service := NewCheckIn(checkInMonitor, metrics.NewRegistry())
 
-		result := service.RecordCheckIn(now)
+		result := service.RecordCheckIn(context.Background(), now)
 
 		assert.Equal(t, "prometheus", result.CheckInName)
 		assert.Equal(t, monitor.PhaseAwaiting, result.Snapshot.Phase)
 		assert.Equal(t, monitor.PhaseScheduled, result.PreviousPhase)
+	})
+
+	t.Run("passes context to context-aware monitor", func(t *testing.T) {
+		t.Parallel()
+
+		now := time.Date(2026, 6, 19, 8, 0, 0, 0, time.UTC)
+		checkInMonitor := &recordingContextCheckInMonitor{
+			Monitor: monitor.New("prometheus", time.Minute, time.Second, testLogger()),
+		}
+		service := NewCheckIn(checkInMonitor, metrics.NewRegistry())
+		ctx := context.WithValue(context.Background(), contextValueKey("request"), "check-in-request")
+
+		service.RecordCheckIn(ctx, now)
+
+		assert.Equal(t, "check-in-request", checkInMonitor.contextValue)
 	})
 
 	t.Run("records check-in metrics", func(t *testing.T) {
@@ -81,7 +97,7 @@ func TestService_RecordCheckIn(t *testing.T) {
 		checkInMonitor := monitor.New("prometheus", time.Minute, time.Second, testLogger())
 		service := NewCheckIn(checkInMonitor, registry)
 
-		service.RecordCheckIn(now)
+		service.RecordCheckIn(context.Background(), now)
 
 		body := scrapeMetrics(t, registry)
 		assert.Contains(t, body, `overdue_checkins_received_total{check_in="prometheus"} 1`)
@@ -104,6 +120,18 @@ func TestService_Snapshot(t *testing.T) {
 		assert.Equal(t, monitor.PhaseAwaiting, snapshot.Snapshot.Phase)
 		assert.True(t, snapshot.Snapshot.LastCheckIn.Equal(now))
 	})
+}
+
+type contextValueKey string
+
+type recordingContextCheckInMonitor struct {
+	*monitor.Monitor
+	contextValue any
+}
+
+func (m *recordingContextCheckInMonitor) RecordCheckInContext(ctx context.Context, at time.Time) monitor.RecordResult {
+	m.contextValue = ctx.Value(contextValueKey("request"))
+	return m.Monitor.RecordCheckIn(at)
 }
 
 // scrapeMetrics renders the registry metrics response body.

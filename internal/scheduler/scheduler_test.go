@@ -18,18 +18,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type contextValueKey string
+
 type recordingNotifier struct {
-	mu        sync.Mutex
-	events    []monitor.Event
-	receivers [][]kit.ReceiverID
-	called    chan monitor.Event
+	mu            sync.Mutex
+	events        []monitor.Event
+	receivers     [][]kit.ReceiverID
+	contextValues []any
+	called        chan monitor.Event
 }
 
 func newRecordingNotifier() *recordingNotifier {
 	return &recordingNotifier{called: make(chan monitor.Event, 10)}
 }
 
-func (n *recordingNotifier) Enqueue(_ context.Context, notification kit.Notification) (string, error) {
+func (n *recordingNotifier) Enqueue(ctx context.Context, notification kit.Notification) (string, error) {
 	event, ok := notification.(*overduenotify.Event)
 	if !ok {
 		return notification.ID(), nil
@@ -43,6 +46,7 @@ func (n *recordingNotifier) Enqueue(_ context.Context, notification kit.Notifica
 	n.mu.Lock()
 	n.events = append(n.events, event.MonitorEvent)
 	n.receivers = append(n.receivers, receivers)
+	n.contextValues = append(n.contextValues, ctx.Value(contextValueKey("request")))
 	n.mu.Unlock()
 	n.called <- event.MonitorEvent
 	return notification.ID(), nil
@@ -62,6 +66,12 @@ func (n *recordingNotifier) Receivers() [][]kit.ReceiverID {
 		out[i] = append([]kit.ReceiverID(nil), receivers...)
 	}
 	return out
+}
+
+func (n *recordingNotifier) ContextValues() []any {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	return append([]any(nil), n.contextValues...)
 }
 
 func TestScheduler_CheckInName(t *testing.T) {
@@ -102,8 +112,9 @@ func TestScheduler_RecordCheckIn(t *testing.T) {
 		s := New(checkInMonitor, notifier, []kit.ReceiverID{"ops"}, metrics.NewRegistry(), testLogger())
 
 		s.RecordCheckIn(start)
-		s.Check(start.Add(time.Minute))
-		result := s.RecordCheckIn(start.Add(2 * time.Minute))
+		s.Check(context.Background(), start.Add(time.Minute))
+		ctx := context.WithValue(context.Background(), contextValueKey("request"), "check-in-request")
+		result := s.RecordCheckInContext(ctx, start.Add(2*time.Minute))
 
 		require.True(t, result.ShouldNotify)
 		assert.Equal(t, monitor.StatusResolved, result.Event.Status)
@@ -111,6 +122,7 @@ func TestScheduler_RecordCheckIn(t *testing.T) {
 		require.Len(t, events, 2)
 		assert.Equal(t, monitor.StatusResolved, events[1].Status)
 		assert.Equal(t, []kit.ReceiverID{"ops"}, notifier.Receivers()[1])
+		assert.Equal(t, "check-in-request", notifier.ContextValues()[1])
 	})
 
 	t.Run("skips resolved notification without configured resolved receivers", func(t *testing.T) {
@@ -122,8 +134,9 @@ func TestScheduler_RecordCheckIn(t *testing.T) {
 		s := New(checkInMonitor, notifier, nil, metrics.NewRegistry(), testLogger())
 
 		s.RecordCheckIn(start)
-		s.Check(start.Add(time.Minute))
-		result := s.RecordCheckIn(start.Add(2 * time.Minute))
+		s.Check(context.Background(), start.Add(time.Minute))
+		ctx := context.WithValue(context.Background(), contextValueKey("request"), "check-in-request")
+		result := s.RecordCheckInContext(ctx, start.Add(2*time.Minute))
 
 		require.True(t, result.ShouldNotify)
 		events := notifier.Events()
@@ -155,7 +168,7 @@ func TestScheduler_Check(t *testing.T) {
 	checkInMonitor.RecordCheckIn(start)
 	s := New(checkInMonitor, notifier, nil, metrics.NewRegistry(), testLogger())
 
-	s.Check(start.Add(time.Minute))
+	s.Check(context.Background(), start.Add(time.Minute))
 
 	events := notifier.Events()
 	require.Len(t, events, 1)

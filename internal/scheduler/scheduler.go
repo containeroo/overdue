@@ -71,9 +71,19 @@ func (s *Scheduler) CheckInName() string {
 
 // RecordCheckIn records a check-in and enqueues any resolved notification.
 func (s *Scheduler) RecordCheckIn(at time.Time) monitor.RecordResult {
+	return s.RecordCheckInContext(context.Background(), at)
+}
+
+// RecordCheckInContext records a check-in and uses ctx when enqueueing any
+// resolved notification.
+func (s *Scheduler) RecordCheckInContext(ctx context.Context, at time.Time) monitor.RecordResult {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	result := s.monitor.RecordCheckIn(at)
 	if result.ShouldNotify {
-		s.enqueue(context.Background(), result.Event)
+		s.enqueue(ctx, result.Event)
 	}
 	s.metrics.SetMonitorSnapshot(s.monitor.CheckInName(), result.Snapshot)
 	s.requestReschedule()
@@ -91,10 +101,14 @@ func (s *Scheduler) Run(ctx context.Context) {
 }
 
 // Check advances the monitor and enqueues due lifecycle events.
-func (s *Scheduler) Check(now time.Time) {
+func (s *Scheduler) Check(ctx context.Context, now time.Time) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	result := s.monitor.Check(now)
 	if result.ShouldNotify {
-		s.enqueue(context.Background(), result.Event)
+		s.enqueue(ctx, result.Event)
 	}
 	s.metrics.SetMonitorSnapshot(s.monitor.CheckInName(), s.monitor.Snapshot())
 }
@@ -112,9 +126,9 @@ func (s *Scheduler) run(ctx context.Context) {
 			return
 		case <-s.rescheduleCh:
 			timer.Stop()
-			s.Check(time.Now())
+			s.Check(ctx, time.Now())
 		case now := <-timer.C():
-			s.Check(now)
+			s.Check(ctx, now)
 		}
 	}
 }
@@ -123,6 +137,7 @@ func (s *Scheduler) run(ctx context.Context) {
 func (s *Scheduler) enqueue(ctx context.Context, monitorEvent monitor.Event) {
 	receiverIDs, ok := overduenotify.ReceiverIDsForEvent(monitorEvent, s.resolvedReceivers)
 	if !ok {
+		s.incNotificationSkipped(monitorEvent, "no_resolved_receivers")
 		s.logger.Info(
 			"notification skipped",
 			"incidentID", monitorEvent.IncidentID,
@@ -134,6 +149,7 @@ func (s *Scheduler) enqueue(ctx context.Context, monitorEvent monitor.Event) {
 
 	id, err := s.notifier.Enqueue(ctx, overduenotify.NewEvent(monitorEvent, receiverIDs))
 	if err != nil {
+		s.incNotificationQueueFailed(monitorEvent)
 		s.logger.Error(
 			"notification queue failed",
 			"incidentID", monitorEvent.IncidentID,
@@ -144,6 +160,7 @@ func (s *Scheduler) enqueue(ctx context.Context, monitorEvent monitor.Event) {
 		return
 	}
 	if id == "" {
+		s.incNotificationSkipped(monitorEvent, "empty_queue_id")
 		s.logger.Info(
 			"notification skipped",
 			"incidentID", monitorEvent.IncidentID,
@@ -152,6 +169,7 @@ func (s *Scheduler) enqueue(ctx context.Context, monitorEvent monitor.Event) {
 		)
 		return
 	}
+	s.incNotificationQueued(monitorEvent)
 	s.logger.Info(
 		"notification queued",
 		"queueID", id,
@@ -159,6 +177,30 @@ func (s *Scheduler) enqueue(ctx context.Context, monitorEvent monitor.Event) {
 		"notificationID", monitorEvent.NotificationID,
 		"status", monitorEvent.Status,
 	)
+}
+
+// incNotificationQueued records a queued notification when metrics are configured.
+func (s *Scheduler) incNotificationQueued(event monitor.Event) {
+	if s.metrics == nil {
+		return
+	}
+	s.metrics.IncNotificationQueued(event.CheckInName, event.Status)
+}
+
+// incNotificationSkipped records a skipped notification when metrics are configured.
+func (s *Scheduler) incNotificationSkipped(event monitor.Event, reason string) {
+	if s.metrics == nil {
+		return
+	}
+	s.metrics.IncNotificationSkipped(event.CheckInName, event.Status, reason)
+}
+
+// incNotificationQueueFailed records a notification queue failure when metrics are configured.
+func (s *Scheduler) incNotificationQueueFailed(event monitor.Event) {
+	if s.metrics == nil {
+		return
+	}
+	s.metrics.IncNotificationQueueFailed(event.CheckInName, event.Status)
 }
 
 // requestReschedule wakes the scheduler loop without blocking.
