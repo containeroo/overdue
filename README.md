@@ -57,20 +57,21 @@ Examples:
 
 ### Core flags
 
-| Flag                 | Environment variable        | Default    | Description                                                                |
-| -------------------- | --------------------------- | ---------- | -------------------------------------------------------------------------- |
-| `--listen-address`   | `OVERDUE__LISTEN_ADDRESS`   | `:8080`    | HTTP server listen address.                                                |
-| `--route-prefix`     | `OVERDUE__ROUTE_PREFIX`     | empty      | Optional path prefix when Overdue is served below a sub-path.              |
-| `--public-url`       | `OVERDUE__PUBLIC_URL`       | empty      | Public base URL used in notification template links.                       |
-| `--name`             | `OVERDUE__NAME`             | `default`  | Name of the check-in monitor used in responses and notifications.          |
-| `--path`             | `OVERDUE__PATH`             | `/checkin` | Route used to receive check-ins.                                           |
-| `--expected-every`   | `OVERDUE__EXPECTED_EVERY`   | required   | Maximum time between check-ins.                                            |
-| `--alerting-delay`   | `OVERDUE__ALERTING_DELAY`   | required   | Extra time after the expected deadline before alerting.                    |
-| `--start-active`     | `OVERDUE__START_ACTIVE`     | `false`    | Activate the monitor at startup instead of waiting for the first check-in. |
-| `--response-details` | `OVERDUE__RESPONSE_DETAILS` | `false`    | Return detailed timing fields from check-in responses by default.          |
-| `--auth-token`       | `OVERDUE__AUTH_TOKEN`       | empty      | Optional bearer token required for check-in and status requests.           |
-| `--debug`            | `OVERDUE__DEBUG`            | `false`    | Enable debug logging.                                                      |
-| `--log-format`       | `OVERDUE__LOG_FORMAT`       | `json`     | Log format: `json` or `text`.                                              |
+| Flag                  | Environment variable         | Default    | Description                                                                |
+| --------------------- | ---------------------------- | ---------- | -------------------------------------------------------------------------- |
+| `--listen-address`    | `OVERDUE__LISTEN_ADDRESS`    | `:8080`    | HTTP server listen address.                                                |
+| `--route-prefix`      | `OVERDUE__ROUTE_PREFIX`      | empty      | Optional path prefix when Overdue is served below a sub-path.              |
+| `--public-url`        | `OVERDUE__PUBLIC_URL`        | empty      | Public base URL used in notification template links.                       |
+| `--name`              | `OVERDUE__NAME`              | `default`  | Name of the check-in monitor used in responses and notifications.          |
+| `--path`              | `OVERDUE__PATH`              | `/checkin` | Route used to receive check-ins.                                           |
+| `--expected-every`    | `OVERDUE__EXPECTED_EVERY`    | required   | Maximum time between check-ins.                                            |
+| `--alerting-delay`    | `OVERDUE__ALERTING_DELAY`    | required   | Extra time after the expected deadline before alerting.                    |
+| `--start-active`      | `OVERDUE__START_ACTIVE`      | `false`    | Activate the monitor at startup instead of waiting for the first check-in. |
+| `--allow-get-checkin` | `OVERDUE__ALLOW_GET_CHECKIN` | `false`    | Also accept `GET` requests on the check-in route.                          |
+| `--response-details`  | `OVERDUE__RESPONSE_DETAILS`  | `false`    | Return detailed timing fields from check-in responses by default.          |
+| `--auth-token`        | `OVERDUE__AUTH_TOKEN`        | empty      | Optional bearer token required for check-in and status requests.           |
+| `--debug`             | `OVERDUE__DEBUG`             | `false`    | Enable debug logging.                                                      |
+| `--log-format`        | `OVERDUE__LOG_FORMAT`        | `json`     | Log format: `json` or `text`.                                              |
 
 ## Notifications
 
@@ -297,7 +298,7 @@ curl -X POST 'http://localhost:8080/checkin?details=true'
 
 ### `GET /checkin`
 
-Also records a check-in. This is useful for simple uptime systems that only support GET checks.
+Disabled by default. Enable `--allow-get-checkin` only for simple uptime systems that cannot send `POST` requests. When enabled, `GET /checkin` also records a check-in.
 
 ### `GET /status`
 
@@ -331,7 +332,7 @@ curl http://localhost:8080/version
 
 ### `GET /metrics`
 
-Prometheus metrics endpoint.
+Prometheus metrics endpoint. This endpoint is intentionally not protected by `--auth-token`, because Prometheus commonly scrapes without application bearer tokens. Do not expose it directly to the public internet unless a reverse proxy, firewall, or network policy restricts access.
 
 ```sh
 curl http://localhost:8080/metrics
@@ -339,7 +340,7 @@ curl http://localhost:8080/metrics
 
 ## Authentication
 
-Set `--auth-token` or `OVERDUE__AUTH_TOKEN` to require a bearer token for check-in and status requests.
+Set `--auth-token` or `OVERDUE__AUTH_TOKEN` to require a bearer token for check-in and status requests. The metrics, health, readiness, and version endpoints remain unauthenticated; protect them at the reverse proxy or network layer when exposed outside a trusted network.
 
 ```sh
 curl -H "Authorization: Bearer $OVERDUE_TOKEN" \

@@ -26,6 +26,10 @@ services:
 
     # Optional Traefik configuration.
     #
+    # Note: /metrics is intentionally not protected by OVERDUE__AUTH_TOKEN.
+    # Restrict it in Traefik, a firewall, or a private Docker network before
+    # exposing this service on an internet-facing domain.
+    #
     # These labels expose overdue through Traefik on the same base domain but
     # below a path prefix. Traefik only forwards requests matching /watchdog
     # to this container.
@@ -49,3 +53,5 @@ services:
     #   "traefik.http.routers.overdue-watchdog.rule": "Host(`overdue.example`) && PathPrefix(`/watchdog`)"
     #   "traefik.http.routers.overdue-watchdog.service": "overdue-watchdog"
     #   "traefik.http.services.overdue-watchdog.loadbalancer.server.port": "8080"
+
+
