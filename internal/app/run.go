@@ -60,7 +60,7 @@ func Run(
 	)
 	setupLog.Debug("notifications", "webhooks", flags.Notifications.Webhooks, "emails", flags.Notifications.Emails)
 
-	receivers, resolvedReceivers, err := notify.ReceiversFromConfig(
+	receivers, notificationRouter, err := notify.ReceiversFromConfig(
 		templateFS,
 		flags.Notifications,
 		logger.With("component", "notify"),
@@ -92,7 +92,7 @@ func Run(
 	)
 
 	reg := metrics.NewRegistry()
-	sched := scheduler.New(mon, notifyManager, resolvedReceivers, reg, logger.With("component", "scheduler"))
+	sched := scheduler.New(mon, notifyManager, notificationRouter, reg, logger.With("component", "scheduler"))
 	if flags.CheckIn.StartActive {
 		activatedAt := time.Now()
 		sched.RecordCheckInContext(ctx, activatedAt)

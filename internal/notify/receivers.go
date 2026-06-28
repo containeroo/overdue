@@ -16,8 +16,8 @@ import (
 	"github.com/containeroo/notifykit/templates"
 )
 
-// ReceiversFromConfig builds notifykit receivers from Overdue notification config.
-func ReceiversFromConfig(templateFS fs.FS, cfg config.Notifications, logger *slog.Logger) (kit.Receivers, []kit.ReceiverID, error) {
+// ReceiversFromConfig builds notifykit receivers and routing policy from Overdue notification config.
+func ReceiversFromConfig(templateFS fs.FS, cfg config.Notifications, logger *slog.Logger) (kit.Receivers, *Router, error) {
 	receivers := make(kit.Receivers, len(cfg.Webhooks)+len(cfg.Emails))
 	resolvedReceivers := make([]kit.ReceiverID, 0, len(cfg.Webhooks)+len(cfg.Emails))
 
@@ -43,18 +43,30 @@ func ReceiversFromConfig(templateFS fs.FS, cfg config.Notifications, logger *slo
 		}
 	}
 
-	return receivers, resolvedReceivers, nil
+	return receivers, NewRouter(resolvedReceivers), nil
+}
+
+// Router owns notification receiver routing rules.
+type Router struct {
+	resolvedReceivers []kit.ReceiverID
+}
+
+// NewRouter creates a notification router.
+func NewRouter(resolvedReceivers []kit.ReceiverID) *Router {
+	return &Router{
+		resolvedReceivers: append([]kit.ReceiverID(nil), resolvedReceivers...),
+	}
 }
 
 // ReceiverIDsForEvent returns explicit receiver routing for an event.
-func ReceiverIDsForEvent(event monitor.Event, resolvedReceivers []kit.ReceiverID) ([]kit.ReceiverID, bool) {
+func (r *Router) ReceiverIDsForEvent(event monitor.Event) ([]kit.ReceiverID, bool) {
 	if !event.Resolved {
 		return nil, true
 	}
-	if len(resolvedReceivers) == 0 {
+	if r == nil || len(r.resolvedReceivers) == 0 {
 		return nil, false
 	}
-	return append([]kit.ReceiverID(nil), resolvedReceivers...), true
+	return append([]kit.ReceiverID(nil), r.resolvedReceivers...), true
 }
 
 // webhookReceiver creates one webhook receiver from config.

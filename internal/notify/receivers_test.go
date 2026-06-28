@@ -23,7 +23,7 @@ func TestReceiversFromConfig(t *testing.T) {
 
 		templatePaths := writeReceiverTemplates(t)
 
-		receivers, resolvedReceivers, err := ReceiversFromConfig(nil, config.Notifications{
+		receivers, router, err := ReceiversFromConfig(nil, config.Notifications{
 			App: config.AppData{Version: "dev"},
 			Webhooks: []config.WebhookConfig{
 				{
@@ -55,18 +55,21 @@ func TestReceiversFromConfig(t *testing.T) {
 		assert.Contains(t, receivers, kit.ReceiverID("webhook.ops"))
 		assert.Contains(t, receivers, kit.ReceiverID("email.ops"))
 		assert.Len(t, receivers, 2)
-		assert.Equal(t, []kit.ReceiverID{"webhook.ops", "email.ops"}, resolvedReceivers)
+		ids, ok := router.ReceiverIDsForEvent(monitor.Event{Status: monitor.StatusResolved, Resolved: true})
+		assert.True(t, ok)
+		assert.Equal(t, []kit.ReceiverID{"webhook.ops", "email.ops"}, ids)
 	})
 }
 
-// TestReceiverIDsForEvent tests resolved event receiver routing.
-func TestReceiverIDsForEvent(t *testing.T) {
+// TestRouter_ReceiverIDsForEvent tests resolved event receiver routing.
+func TestRouter_ReceiverIDsForEvent(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns all receivers for alerting event", func(t *testing.T) {
 		t.Parallel()
 
-		ids, ok := ReceiverIDsForEvent(monitor.Event{Status: monitor.StatusAlerting}, []kit.ReceiverID{"ops"})
+		router := NewRouter([]kit.ReceiverID{"ops"})
+		ids, ok := router.ReceiverIDsForEvent(monitor.Event{Status: monitor.StatusAlerting})
 
 		assert.True(t, ok)
 		assert.Nil(t, ids)
@@ -75,7 +78,8 @@ func TestReceiverIDsForEvent(t *testing.T) {
 	t.Run("returns resolved receivers for resolved event", func(t *testing.T) {
 		t.Parallel()
 
-		ids, ok := ReceiverIDsForEvent(monitor.Event{Status: monitor.StatusResolved, Resolved: true}, []kit.ReceiverID{"ops", "email"})
+		router := NewRouter([]kit.ReceiverID{"ops", "email"})
+		ids, ok := router.ReceiverIDsForEvent(monitor.Event{Status: monitor.StatusResolved, Resolved: true})
 
 		assert.True(t, ok)
 		assert.Equal(t, []kit.ReceiverID{"ops", "email"}, ids)
@@ -84,7 +88,8 @@ func TestReceiverIDsForEvent(t *testing.T) {
 	t.Run("skips resolved event without resolved receivers", func(t *testing.T) {
 		t.Parallel()
 
-		ids, ok := ReceiverIDsForEvent(monitor.Event{Status: monitor.StatusResolved, Resolved: true}, nil)
+		router := NewRouter(nil)
+		ids, ok := router.ReceiverIDsForEvent(monitor.Event{Status: monitor.StatusResolved, Resolved: true})
 
 		assert.False(t, ok)
 		assert.Nil(t, ids)
@@ -94,11 +99,15 @@ func TestReceiverIDsForEvent(t *testing.T) {
 		t.Parallel()
 
 		original := []kit.ReceiverID{"ops"}
-		ids, ok := ReceiverIDsForEvent(monitor.Event{Status: monitor.StatusResolved, Resolved: true}, original)
+		router := NewRouter(original)
+		original[0] = "changed"
+		ids, ok := router.ReceiverIDsForEvent(monitor.Event{Status: monitor.StatusResolved, Resolved: true})
 		ids[0] = "changed"
 
 		assert.True(t, ok)
-		assert.Equal(t, []kit.ReceiverID{"ops"}, original)
+		next, nextOK := router.ReceiverIDsForEvent(monitor.Event{Status: monitor.StatusResolved, Resolved: true})
+		assert.True(t, nextOK)
+		assert.Equal(t, []kit.ReceiverID{"ops"}, next)
 	})
 }
 

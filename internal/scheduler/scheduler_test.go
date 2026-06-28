@@ -109,7 +109,7 @@ func TestScheduler_RecordCheckIn(t *testing.T) {
 		start := time.Date(2026, 6, 19, 8, 0, 0, 0, time.UTC)
 		checkInMonitor := monitor.New("default", time.Minute, 0, testLogger())
 		notifier := newRecordingNotifier()
-		s := New(checkInMonitor, notifier, []kit.ReceiverID{"ops"}, metrics.NewRegistry(), testLogger())
+		s := New(checkInMonitor, notifier, overduenotify.NewRouter([]kit.ReceiverID{"ops"}), metrics.NewRegistry(), testLogger())
 
 		s.RecordCheckIn(start)
 		s.Check(context.Background(), start.Add(time.Minute))
@@ -234,7 +234,7 @@ func TestScheduler_enqueue(t *testing.T) {
 		t.Parallel()
 
 		notifier := newRecordingNotifier()
-		s := &Scheduler{notifier: notifier, logger: testLogger()}
+		s := &Scheduler{notifier: notifier, router: overduenotify.NewRouter(nil), logger: testLogger()}
 		event := schedulerTestEvent("notification")
 
 		s.enqueue(context.Background(), event)
@@ -249,7 +249,7 @@ func TestScheduler_enqueue(t *testing.T) {
 		t.Parallel()
 
 		notifier := newRecordingNotifier()
-		s := &Scheduler{notifier: notifier, logger: testLogger()}
+		s := &Scheduler{notifier: notifier, router: overduenotify.NewRouter(nil), logger: testLogger()}
 		event := schedulerTestEvent("notification")
 		event.Resolved = true
 		event.Status = monitor.StatusResolved
@@ -298,17 +298,6 @@ func TestNew(t *testing.T) {
 
 		body := scrapeMetrics(t, registry)
 		assert.Contains(t, body, `overdue_monitor_phase{check_in="prometheus",phase="scheduled"} 1`)
-	})
-
-	t.Run("copies resolved receivers", func(t *testing.T) {
-		t.Parallel()
-
-		checkInMonitor := monitor.New("default", time.Minute, time.Second, testLogger())
-		resolvedReceivers := []kit.ReceiverID{"ops"}
-		s := New(checkInMonitor, newRecordingNotifier(), resolvedReceivers, metrics.NewRegistry(), testLogger())
-		resolvedReceivers[0] = "changed"
-
-		assert.Equal(t, []kit.ReceiverID{"ops"}, s.resolvedReceivers)
 	})
 
 	t.Run("panics without monitor", func(t *testing.T) {

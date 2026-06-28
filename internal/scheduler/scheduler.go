@@ -28,21 +28,26 @@ type MetricsRecorder interface {
 	IncNotificationQueueFailed(checkIn string, status monitor.EventStatus)
 }
 
+// NotificationRouter chooses explicit notification receivers for monitor events.
+type NotificationRouter interface {
+	ReceiverIDsForEvent(event monitor.Event) ([]kit.ReceiverID, bool)
+}
+
 // Scheduler advances a check-in monitor and enqueues lifecycle notifications.
 type Scheduler struct {
-	monitor           CheckInMonitor
-	notifier          kit.Notifier
-	resolvedReceivers []kit.ReceiverID
-	logger            *slog.Logger
-	metrics           MetricsRecorder
-	rescheduleCh      chan struct{}
+	monitor      CheckInMonitor
+	notifier     kit.Notifier
+	router       NotificationRouter
+	logger       *slog.Logger
+	metrics      MetricsRecorder
+	rescheduleCh chan struct{}
 }
 
 // New creates a scheduler for a check-in monitor and notifykit manager.
 func New(
 	monitor CheckInMonitor,
 	notifier kit.Notifier,
-	resolvedReceivers []kit.ReceiverID,
+	router NotificationRouter,
 	registry MetricsRecorder,
 	logger *slog.Logger,
 ) *Scheduler {
@@ -58,14 +63,17 @@ func New(
 	if logger == nil {
 		panic("scheduler logger must not be nil")
 	}
+	if router == nil {
+		router = overduenotify.NewRouter(nil)
+	}
 
 	scheduler := &Scheduler{
-		monitor:           monitor,
-		notifier:          notifier,
-		resolvedReceivers: append([]kit.ReceiverID(nil), resolvedReceivers...),
-		logger:            logger,
-		metrics:           registry,
-		rescheduleCh:      make(chan struct{}, 1),
+		monitor:      monitor,
+		notifier:     notifier,
+		router:       router,
+		logger:       logger,
+		metrics:      registry,
+		rescheduleCh: make(chan struct{}, 1),
 	}
 	registry.SetMonitorSnapshot(monitor.CheckInName(), monitor.Snapshot())
 	return scheduler
@@ -142,7 +150,7 @@ func (s *Scheduler) run(ctx context.Context) {
 
 // enqueue converts a monitor event into a notifykit notification and queues it.
 func (s *Scheduler) enqueue(ctx context.Context, monitorEvent monitor.Event) {
-	receiverIDs, ok := overduenotify.ReceiverIDsForEvent(monitorEvent, s.resolvedReceivers)
+	receiverIDs, ok := s.router.ReceiverIDsForEvent(monitorEvent)
 	if !ok {
 		s.incNotificationSkipped(monitorEvent, "no_resolved_receivers")
 		s.logger.Info(
