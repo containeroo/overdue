@@ -8,6 +8,7 @@ import (
 	"time"
 
 	kit "github.com/containeroo/notifykit/notify"
+	"github.com/containeroo/notifykit/targets/webhook"
 	"github.com/containeroo/overdue/internal/config"
 	"github.com/containeroo/overdue/internal/monitor"
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,7 @@ func TestReceiversFromConfig(t *testing.T) {
 					Method:            http.MethodPost,
 					Timeout:           time.Second,
 					SendResolved:      true,
-					SubjectTemplate:   config.DefaultSubjectTemplate(),
+					SubjectTemplate:   "",
 					Template:          templatePaths.webhook,
 					ResponseBodyLimit: 128,
 				},
@@ -45,7 +46,7 @@ func TestReceiversFromConfig(t *testing.T) {
 					SendResolved:    true,
 					From:            "overdue@example.test",
 					To:              []string{"ops@example.test"},
-					SubjectTemplate: config.DefaultSubjectTemplate(),
+					SubjectTemplate: "",
 					Template:        templatePaths.email,
 				},
 			},
@@ -123,6 +124,41 @@ func TestEmailReceiverID(t *testing.T) {
 	t.Parallel()
 
 	assert.Equal(t, kit.ReceiverID("email.ops"), emailReceiverID("ops"))
+}
+
+func TestSubjectTemplate(t *testing.T) {
+	t.Parallel()
+
+	t.Run("uses renderer default for empty value", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, defaultSubjectTemplate, subjectTemplate(""))
+	})
+
+	t.Run("keeps configured value", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "custom", subjectTemplate("custom"))
+	})
+}
+
+func TestWebhookLogResponse(t *testing.T) {
+	t.Parallel()
+
+	t.Run("converts known values", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, webhook.LogResponseSummary, webhookLogResponse(config.WebhookLogResponseSummary))
+		assert.Equal(t, webhook.LogResponseBody, webhookLogResponse(config.WebhookLogResponseBody))
+		assert.Equal(t, webhook.LogResponseFull, webhookLogResponse(config.WebhookLogResponseFull))
+		assert.Equal(t, webhook.LogResponseNone, webhookLogResponse(config.WebhookLogResponseNone))
+	})
+
+	t.Run("defaults empty value to summary", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, webhook.LogResponseSummary, webhookLogResponse(""))
+	})
 }
 
 type receiverTemplatePaths struct {

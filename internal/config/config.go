@@ -4,7 +4,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/containeroo/notifykit/targets/webhook"
 	"github.com/containeroo/overdue/internal/logging"
 )
 
@@ -54,8 +53,19 @@ type AppData struct {
 	StatusURL  string
 }
 
-// LogResponse controls how much of a webhook response is logged on success.
-type LogResponse = webhook.LogResponse
+// WebhookLogResponse controls how much of a webhook response is logged on success.
+type WebhookLogResponse string
+
+const (
+	// WebhookLogResponseSummary logs only status, status code, duration, and truncation state.
+	WebhookLogResponseSummary WebhookLogResponse = "summary"
+	// WebhookLogResponseBody logs status fields and response body, but not response headers.
+	WebhookLogResponseBody WebhookLogResponse = "body"
+	// WebhookLogResponseFull logs status fields, response body, and response headers.
+	WebhookLogResponseFull WebhookLogResponse = "full"
+	// WebhookLogResponseNone suppresses successful webhook response logs.
+	WebhookLogResponseNone WebhookLogResponse = "none"
+)
 
 // WebhookConfig contains one configured webhook notification target.
 type WebhookConfig struct {
@@ -69,7 +79,7 @@ type WebhookConfig struct {
 	SubjectTemplate   string
 	Template          string
 	CustomData        map[string]string
-	LogResponse       LogResponse
+	LogResponse       WebhookLogResponse
 	ResponseBodyLimit int
 }
 
@@ -89,14 +99,3 @@ type EmailConfig struct {
 	Template          string
 	CustomData        map[string]string
 }
-
-const (
-	// LogResponseSummary logs only status, status code, duration, and truncation state.
-	LogResponseSummary = webhook.LogResponseSummary
-	// LogResponseBody logs status fields and response body, but not response headers.
-	LogResponseBody = webhook.LogResponseBody
-	// LogResponseFull logs status fields, response body, and response headers.
-	LogResponseFull = webhook.LogResponseFull
-	// LogResponseNone suppresses successful webhook response logs.
-	LogResponseNone = webhook.LogResponseNone
-)

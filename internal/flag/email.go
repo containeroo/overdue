@@ -1,7 +1,6 @@
 package flag
 
 import (
-	"github.com/containeroo/overdue/internal/config"
 	"github.com/containeroo/overdue/internal/utils"
 	"github.com/containeroo/tinyflags"
 )
@@ -27,7 +26,7 @@ func registerEmailFlags(tf *tinyflags.FlagSet) {
 	emailGroup.Bool("smtp-tls-skip-verify", false, "Skip SMTP TLS certificate verification")
 	emailGroup.Bool("send-resolved", false, "Send a resolved email notification when check-ins resume after alerting")
 
-	emailGroup.String("subject-template", config.DefaultSubjectTemplate(), "Template for email subject")
+	emailGroup.String("subject-template", "", "Optional template for email subject")
 
 	emailGroup.String("from", "", "Email sender address").
 		Required().

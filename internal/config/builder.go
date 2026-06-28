@@ -1,17 +1,6 @@
 package config
 
-import (
-	"strings"
-)
-
-const (
-	defaultSubjectTemplate = `{{ if .Resolved }}[RESOLVED]{{ else }}[OVERDUE]{{ end }} Event Notification`
-)
-
-// DefaultSubjectTemplate returns the default notification subject template.
-func DefaultSubjectTemplate() string {
-	return defaultSubjectTemplate
-}
+import "strings"
 
 // NewAppData builds template app data from normalized application settings.
 func NewAppData(version, siteRoot, checkInPath string) AppData {

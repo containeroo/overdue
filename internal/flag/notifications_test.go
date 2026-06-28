@@ -104,7 +104,7 @@ func TestWebhooksFromDynamicGroup(t *testing.T) {
 			SubjectTemplate:   "ops subject",
 			Template:          "ops.tmpl",
 			CustomData:        map[string]string{"channel": "#ops"},
-			LogResponse:       config.LogResponseBody,
+			LogResponse:       config.WebhookLogResponseBody,
 			ResponseBodyLimit: 128,
 		}, configs[0])
 	})
@@ -124,8 +124,8 @@ func TestWebhooksFromDynamicGroup(t *testing.T) {
 			URL:               "https://example.test/webhook",
 			Headers:           map[string]string{"User-Agent": "overdue/dev"},
 			Timeout:           10 * time.Second,
-			SubjectTemplate:   config.DefaultSubjectTemplate(),
-			LogResponse:       config.LogResponseSummary,
+			SubjectTemplate:   "",
+			LogResponse:       config.WebhookLogResponseSummary,
 			ResponseBodyLimit: 4096,
 		}, configs[0])
 	})
@@ -207,7 +207,7 @@ func TestEmailsFromDynamicGroup(t *testing.T) {
 			From:            "overdue@example.test",
 			To:              []string{"ops@example.test"},
 			Headers:         map[string]string{"X-Mailer": "overdue/dev"},
-			SubjectTemplate: config.DefaultSubjectTemplate(),
+			SubjectTemplate: "",
 		}, configs[0])
 	})
 }
@@ -245,19 +245,19 @@ func notificationTestFlagSet(t *testing.T, args []string) *tinyflags.FlagSet {
 	webhookGroup.Duration("timeout", 10*time.Second, "HTTP timeout")
 	webhookGroup.Bool("tls-skip-verify", false, "Skip TLS certificate verification")
 	webhookGroup.Bool("send-resolved", false, "Send resolved notifications")
-	webhookGroup.String("subject-template", config.DefaultSubjectTemplate(), "Subject template")
+	webhookGroup.String("subject-template", "", "Subject template")
 	webhookGroup.StringSlice("headers", nil, "HTTP headers")
 	webhookGroup.StringSlice("custom-data", nil, "Custom data")
 	webhookGroup.String("template", "", "Body template")
 	tinyflags.DynamicEnum(
 		webhookGroup,
 		"log-response",
-		config.LogResponseSummary,
+		config.WebhookLogResponseSummary,
 		"Webhook response logging",
-		config.LogResponseSummary,
-		config.LogResponseBody,
-		config.LogResponseFull,
-		config.LogResponseNone,
+		config.WebhookLogResponseSummary,
+		config.WebhookLogResponseBody,
+		config.WebhookLogResponseFull,
+		config.WebhookLogResponseNone,
 	)
 	webhookGroup.Int("response-body-limit", 4096, "Response body limit")
 
@@ -269,7 +269,7 @@ func notificationTestFlagSet(t *testing.T, args []string) *tinyflags.FlagSet {
 	emailGroup.Bool("smtp-tls-skip-verify", false, "Skip SMTP TLS certificate verification")
 	emailGroup.Bool("smtp-skip-insecure", false, "Deprecated alias for smtp-tls-skip-verify")
 	emailGroup.Bool("send-resolved", false, "Send resolved notifications")
-	emailGroup.String("subject-template", config.DefaultSubjectTemplate(), "Subject template")
+	emailGroup.String("subject-template", "", "Subject template")
 	emailGroup.String("from", "", "Sender")
 	emailGroup.StringSlice("to", []string{}, "Recipients")
 	emailGroup.StringSlice("headers", nil, "Email headers")

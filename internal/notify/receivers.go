@@ -16,6 +16,8 @@ import (
 	"github.com/containeroo/notifykit/templates"
 )
 
+const defaultSubjectTemplate = `{{ .Title }}`
+
 // ReceiversFromConfig builds notifykit receivers and routing policy from Overdue notification config.
 func ReceiversFromConfig(templateFS fs.FS, cfg config.Notifications, logger *slog.Logger) (kit.Receivers, *Router, error) {
 	receivers := make(kit.Receivers, len(cfg.Webhooks)+len(cfg.Emails))
@@ -95,7 +97,7 @@ func webhookReceiver(templateFS fs.FS, app config.AppData, cfg config.WebhookCon
 			Template:          tmpl,
 			SubjectTmpl:       subjectTmpl,
 			ValidateJSON:      true,
-			LogResponse:       cfg.LogResponse,
+			LogResponse:       webhookLogResponse(cfg.LogResponse),
 			ResponseBodyLimit: cfg.ResponseBodyLimit,
 		},
 		webhook.WithClient(webhook.NewClient(cfg.Timeout, clientOptions...)),
@@ -164,12 +166,28 @@ func emailReceiverID(name string) kit.ReceiverID {
 	return kit.ReceiverID("email." + name)
 }
 
-// subjectTemplate returns the configured subject template or the default.
+// subjectTemplate returns the configured subject template or a renderer-owned default.
 func subjectTemplate(value string) string {
 	if value == "" {
-		return config.DefaultSubjectTemplate()
+		return defaultSubjectTemplate
 	}
 	return value
+}
+
+// webhookLogResponse converts normalized config into the notifykit webhook type.
+func webhookLogResponse(value config.WebhookLogResponse) webhook.LogResponse {
+	switch value {
+	case config.WebhookLogResponseBody:
+		return webhook.LogResponseBody
+	case config.WebhookLogResponseFull:
+		return webhook.LogResponseFull
+	case config.WebhookLogResponseNone:
+		return webhook.LogResponseNone
+	case config.WebhookLogResponseSummary, "":
+		return webhook.LogResponseSummary
+	default:
+		return webhook.LogResponse(value)
+	}
 }
 
 // validateWebhookTarget renders sample alerting and resolved webhook payloads.

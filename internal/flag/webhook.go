@@ -37,7 +37,7 @@ func registerWebhookFlags(tf *tinyflags.FlagSet) {
 	webhookGroup.Bool("tls-skip-verify", false, "Skip TLS certificate verification")
 	webhookGroup.Bool("send-resolved", false, "Send a resolved webhook notification when check-ins resume after alerting")
 
-	webhookGroup.String("subject-template", config.DefaultSubjectTemplate(), "Template for webhook title or subject")
+	webhookGroup.String("subject-template", "", "Optional template for webhook title or subject")
 
 	webhookGroup.StringSlice("headers", nil, "HTTP headers in KEY=VALUE format").
 		Validate(validateHeader).
@@ -55,12 +55,12 @@ func registerWebhookFlags(tf *tinyflags.FlagSet) {
 	tinyflags.DynamicEnum(
 		webhookGroup,
 		"log-response",
-		config.LogResponseSummary,
+		config.WebhookLogResponseSummary,
 		"Webhook response logging: summary, body, full, or none",
-		config.LogResponseSummary,
-		config.LogResponseBody,
-		config.LogResponseFull,
-		config.LogResponseNone,
+		config.WebhookLogResponseSummary,
+		config.WebhookLogResponseBody,
+		config.WebhookLogResponseFull,
+		config.WebhookLogResponseNone,
 	).Placeholder("MODE")
 
 	webhookGroup.Int("response-body-limit", 4096, "Maximum webhook response body bytes to read for logs and errors").

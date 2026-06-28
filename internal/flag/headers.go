@@ -1,4 +1,4 @@
-package config
+package flag
 
 import (
 	"fmt"
@@ -6,8 +6,8 @@ import (
 	"github.com/containeroo/httputils"
 )
 
-// HeaderMap creates a header map from configured header flag values.
-func HeaderMap(groupName, id string, headers []string) (map[string]string, error) {
+// headerMap creates a header map from configured header flag values.
+func headerMap(groupName, id string, headers []string) (map[string]string, error) {
 	if len(headers) == 0 {
 		return nil, nil
 	}

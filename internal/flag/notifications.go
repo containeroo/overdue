@@ -47,7 +47,7 @@ func webhooksFromDynamicGroup(version string, group *tinyflags.DynamicGroup) ([]
 	configs := make([]config.WebhookConfig, 0, len(ids))
 
 	for _, id := range ids {
-		headers, err := config.HeaderMap(group.Name(), id, tinyflags.GetOrDefaultDynamic[[]string](group, id, "headers"))
+		headers, err := headerMap(group.Name(), id, tinyflags.GetOrDefaultDynamic[[]string](group, id, "headers"))
 		if err != nil {
 			return nil, err
 		}
@@ -77,7 +77,7 @@ func webhooksFromDynamicGroup(version string, group *tinyflags.DynamicGroup) ([]
 			SubjectTemplate:   tinyflags.GetOrDefaultDynamic[string](group, id, "subject-template"),
 			Template:          tinyflags.GetOrDefaultDynamic[string](group, id, "template"),
 			CustomData:        customData,
-			LogResponse:       tinyflags.GetOrDefaultDynamic[config.LogResponse](group, id, "log-response"),
+			LogResponse:       tinyflags.GetOrDefaultDynamic[config.WebhookLogResponse](group, id, "log-response"),
 			ResponseBodyLimit: tinyflags.GetOrDefaultDynamic[int](group, id, "response-body-limit"),
 		})
 	}
@@ -91,7 +91,7 @@ func emailsFromDynamicGroup(version string, group *tinyflags.DynamicGroup) ([]co
 	configs := make([]config.EmailConfig, 0, len(ids))
 
 	for _, id := range ids {
-		headers, err := config.HeaderMap(group.Name(), id, tinyflags.GetOrDefaultDynamic[[]string](group, id, "headers"))
+		headers, err := headerMap(group.Name(), id, tinyflags.GetOrDefaultDynamic[[]string](group, id, "headers"))
 		if err != nil {
 			return nil, err
 		}
