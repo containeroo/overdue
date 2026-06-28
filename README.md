@@ -109,6 +109,8 @@ If no notification targets are configured, Overdue still runs and records status
 | `--webhook.<name>.log-response`        | `OVERDUE__WEBHOOK_<NAME>_LOG_RESPONSE`        | `summary`       | Webhook response logging: `summary`, `body`, `full`, or `none`. |
 | `--webhook.<name>.response-body-limit` | `OVERDUE__WEBHOOK_<NAME>_RESPONSE_BODY_LIMIT` | `4096`          | Maximum response body bytes to read for logs and errors.        |
 
+`--webhook.<name>.skip-insecure` remains available as a deprecated alias for `--webhook.<name>.tls-skip-verify`.
+
 ### Email flags
 
 | Flag pattern                          | Environment variable pattern                 | Default         | Description                                   |
@@ -125,6 +127,8 @@ If no notification targets are configured, Overdue still runs and records status
 | `--email.<name>.headers`              | `OVERDUE__EMAIL_<NAME>_HEADERS`              | empty           | Email headers in `KEY=VALUE` format.          |
 | `--email.<name>.custom-data`          | `OVERDUE__EMAIL_<NAME>_CUSTOM_DATA`          | empty           | Custom template data in `KEY=VALUE` format.   |
 | `--email.<name>.template`             | `OVERDUE__EMAIL_<NAME>_TEMPLATE`             | required        | Body template path or `builtin:<name>`.       |
+
+`--email.<name>.smtp-skip-insecure` remains available as a deprecated alias for `--email.<name>.smtp-tls-skip-verify`.
 
 ## Webhook examples
 
@@ -340,7 +344,9 @@ curl http://localhost:8080/version
 
 ### `GET /metrics`
 
-Prometheus metrics endpoint. This endpoint is intentionally not protected by `--auth-token`, because Prometheus commonly scrapes without application bearer tokens. Do not expose it directly to the public internet unless a reverse proxy, firewall, or network policy restricts access.
+Prometheus metrics endpoint. It includes monitor phase/timestamp gauges, received check-in counters, and notification queue counters for queued, skipped, and queue-failed alerting/resolved notifications.
+
+This endpoint is intentionally not protected by `--auth-token`, because Prometheus commonly scrapes without application bearer tokens. Do not expose it directly to the public internet unless a reverse proxy, firewall, or network policy restricts access.
 
 ```sh
 curl http://localhost:8080/metrics

@@ -52,6 +52,7 @@ func notificationTestFlagSet(t *testing.T, args []string) *tinyflags.FlagSet {
 	emailGroup.String("smtp-user", "", "SMTP username")
 	emailGroup.String("smtp-pass", "", "SMTP password")
 	emailGroup.Bool("smtp-tls-skip-verify", false, "Skip SMTP TLS certificate verification")
+	emailGroup.Bool("smtp-skip-insecure", false, "Deprecated alias for smtp-tls-skip-verify")
 	emailGroup.Bool("send-resolved", false, "Send resolved notifications")
 	emailGroup.String("subject-template", defaultSubjectTemplate, "Subject template")
 	emailGroup.String("from", "", "Sender")
