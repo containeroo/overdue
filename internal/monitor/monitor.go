@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containeroo/notifykit/ids"
 	"github.com/containeroo/overdue/internal/utils"
+	"github.com/containeroo/uuidv7"
 )
 
 // Event describes a check-in lifecycle event used when rendering and sending notifications.
@@ -111,7 +111,7 @@ func New(
 		expectedEvery: expectedEvery,
 		alertingDelay: alertingDelay,
 		logger:        logger,
-		newID:         ids.MustNewUUIDV7,
+		newID:         uuidv7.MustNew,
 		phase:         PhaseScheduled,
 	}
 }
@@ -296,12 +296,12 @@ func (m *Monitor) ensureAlertingNotificationIDLocked() string {
 func (m *Monitor) newIDLocked() string {
 	generator := m.newID
 	if generator == nil {
-		generator = ids.MustNewUUIDV7
+		generator = uuidv7.MustNew
 	}
 
 	id := strings.TrimSpace(generator())
 	if id == "" {
-		id = ids.MustNewUUIDV7()
+		id = uuidv7.MustNew()
 	}
 	return id
 }
