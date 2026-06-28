@@ -51,6 +51,12 @@ func TestBearerToken(t *testing.T) {
 		assert.Equal(t, "secret", bearerToken("Bearer   secret  "))
 	})
 
+	t.Run("accepts bearer scheme case insensitively", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "secret", bearerToken("bearer secret"))
+	})
+
 	t.Run("ignores other schemes", func(t *testing.T) {
 		t.Parallel()
 
