@@ -26,6 +26,7 @@ type Config struct {
 	LogFormat       logging.LogFormat
 	CheckIn         CheckInConfig
 	Notifications   Notifications
+	Overridden      map[string]any
 }
 
 // CheckInConfig contains the check-in schedule and endpoint configuration.

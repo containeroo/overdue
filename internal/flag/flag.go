@@ -24,6 +24,7 @@ func ParseArgs(args []string, version string) (config.Config, error) {
 	if err := config.FromFlags(&cfg, version, tf.DynamicGroups()); err != nil {
 		return config.Config{}, err
 	}
+	cfg.Overridden = tf.OverriddenValues()
 
 	return cfg, nil
 }

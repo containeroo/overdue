@@ -58,7 +58,7 @@ func Run(
 		"initialPhase", monitor.PhaseScheduled,
 		"notifications", len(flags.Notifications.Webhooks)+len(flags.Notifications.Emails),
 	)
-	setupLog.Debug("notifications", "webhooks", flags.Notifications.Webhooks, "emails", flags.Notifications.Emails)
+	setupLog.Debug("overridden configuration", "values", flags.Overridden)
 
 	receivers, notificationRouter, err := notify.ReceiversFromConfig(
 		templateFS,

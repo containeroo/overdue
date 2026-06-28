@@ -1,6 +1,7 @@
 package flag
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -149,6 +150,35 @@ func TestParseArgs(t *testing.T) {
 		require.Len(t, cfg.Notifications.Webhooks, 1)
 		assert.Equal(t, "https://example.test/cli", cfg.Notifications.Webhooks[0].URL)
 		assert.Equal(t, 7*time.Second, cfg.Notifications.Webhooks[0].Timeout)
+	})
+
+	t.Run("records masked overridden values", func(t *testing.T) {
+		t.Parallel()
+
+		cfg, err := ParseArgs([]string{
+			"--expected-every=10s",
+			"--alerting-delay=2s",
+			"--auth-token=0123456789abcdefghijklmnopqrstuvwxyz",
+			"--webhook.ops.url=https://hooks.example.test/secret",
+			"--webhook.ops.headers=Authorization=Bearer webhook-secret",
+			"--webhook.ops.template=builtin:slack-incoming-webhook",
+			"--email.ops.smtp-host=smtp.example.test",
+			"--email.ops.smtp-user=user",
+			"--email.ops.smtp-pass=email-secret",
+			"--email.ops.from=overdue@example.test",
+			"--email.ops.to=ops@example.test",
+			"--email.ops.headers=X-Token=email-header-secret",
+			"--email.ops.template=builtin:email-html",
+		}, "dev")
+
+		require.NoError(t, err)
+		overrides := fmt.Sprint(cfg.Overridden)
+		assert.NotContains(t, overrides, "0123456789abcdefghijklmnopqrstuvwxyz")
+		assert.NotContains(t, overrides, "https://hooks.example.test/secret")
+		assert.NotContains(t, overrides, "Authorization=Bearer webhook-secret")
+		assert.NotContains(t, overrides, "email-secret")
+		assert.NotContains(t, overrides, "X-Token=email-header-secret")
+		assert.Equal(t, "email-secret", cfg.Notifications.Emails[0].Pass)
 	})
 
 	t.Run("rejects removed check-in history size flag", func(t *testing.T) {

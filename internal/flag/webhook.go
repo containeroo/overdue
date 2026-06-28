@@ -16,7 +16,8 @@ func registerWebhookFlags(tf *tinyflags.FlagSet) {
 	webhookGroup.String("url", "", "Webhook URL").
 		Validate(validateWebhookURL).
 		Required().
-		Placeholder("URL")
+		Placeholder("URL").
+		OverriddenValueMaskFn(tinyflags.MaskFirstLast)
 
 	tinyflags.DynamicEnum(
 		webhookGroup,
@@ -40,7 +41,8 @@ func registerWebhookFlags(tf *tinyflags.FlagSet) {
 
 	webhookGroup.StringSlice("headers", nil, "HTTP headers in KEY=VALUE format").
 		Validate(validateHeader).
-		Placeholder("KEY=VALUE")
+		Placeholder("KEY=VALUE").
+		OverriddenValueMaskFn(tinyflags.MaskFirstLast)
 
 	webhookGroup.StringSlice("custom-data", nil, "Custom webhook template data in KEY=VALUE format").
 		Validate(utils.ValidateKeyValue).

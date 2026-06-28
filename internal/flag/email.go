@@ -39,7 +39,8 @@ func registerEmailFlags(tf *tinyflags.FlagSet) {
 
 	emailGroup.StringSlice("headers", nil, "Email headers in KEY=VALUE format").
 		Validate(validateHeader).
-		Placeholder("KEY=VALUE")
+		Placeholder("KEY=VALUE").
+		OverriddenValueMaskFn(tinyflags.MaskFirstLast)
 
 	emailGroup.StringSlice("custom-data", nil, "Custom email template data in KEY=VALUE format").
 		Validate(utils.ValidateKeyValue).
