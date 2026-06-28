@@ -53,6 +53,7 @@ func Run(
 		"expectedEvery", flags.CheckIn.ExpectedEvery.String(),
 		"alertingDelay", flags.CheckIn.AlertingDelay.String(),
 		"startActive", flags.CheckIn.StartActive,
+		"allowGETCheckIn", flags.CheckIn.AllowGET,
 		"responseDetails", flags.ResponseDetails,
 		"initialPhase", monitor.PhaseScheduled,
 		"notifications", len(flags.Notifications.Webhooks)+len(flags.Notifications.Emails),
@@ -115,7 +116,7 @@ func Run(
 		logger.With("component", "api"),
 	)
 
-	router := routes.NewRouter(flags.CheckIn.Path, flags.RoutePrefix, api)
+	router := routes.NewRouter(flags.CheckIn.Path, flags.RoutePrefix, flags.CheckIn.AllowGET, api)
 	if err := server.Run(
 		ctx,
 		flags.ListenAddr.String(),

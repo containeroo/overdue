@@ -54,6 +54,7 @@ func registerAppFlags(tf *tinyflags.FlagSet, cfg *config.Config) {
 		Value()
 
 	tf.BoolVar(&cfg.CheckIn.StartActive, "start-active", false, "Activate the check-in monitor at startup instead of waiting for the first check-in").Value()
+	tf.BoolVar(&cfg.CheckIn.AllowGET, "allow-get-checkin", false, "Also accept GET requests on the check-in route").Value()
 	tf.BoolVar(&cfg.ResponseDetails, "response-details", false, "Return detailed timing fields from check-in responses by default").Value()
 
 	tf.StringVar(&cfg.AuthToken, "auth-token", "", "Optional bearer token required for check-ins").

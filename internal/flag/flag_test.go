@@ -86,11 +86,13 @@ func TestParseArgs(t *testing.T) {
 			"--expected-every=10s",
 			"--alerting-delay=2s",
 			"--start-active",
+			"--allow-get-checkin",
 			"--response-details",
 		}, "dev")
 
 		require.NoError(t, err)
 		assert.True(t, cfg.CheckIn.StartActive)
+		assert.True(t, cfg.CheckIn.AllowGET)
 		assert.True(t, cfg.ResponseDetails)
 	})
 

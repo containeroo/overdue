@@ -35,6 +35,7 @@ type CheckInConfig struct {
 	ExpectedEvery time.Duration
 	AlertingDelay time.Duration
 	StartActive   bool
+	AllowGET      bool
 }
 
 // Notifications contains all configured notification targets.
