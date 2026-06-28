@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -80,10 +81,15 @@ func (a *API) respondJSON(w http.ResponseWriter, status int, value any) {
 
 // encodeJSON encodes a value to JSON and writes it to the response.
 func encodeJSON[T any](w http.ResponseWriter, status int, value T) error {
+	var body bytes.Buffer
+	if err := json.NewEncoder(&body).Encode(value); err != nil {
+		return fmt.Errorf("encode json: %w", err)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(value); err != nil {
-		return fmt.Errorf("encode json: %w", err)
+	if _, err := w.Write(body.Bytes()); err != nil {
+		return fmt.Errorf("write json: %w", err)
 	}
 	return nil
 }
