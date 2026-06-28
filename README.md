@@ -100,7 +100,7 @@ If no notification targets are configured, Overdue still runs and records status
 | `--webhook.<name>.url`                 | `OVERDUE__WEBHOOK_<NAME>_URL`                 | required        | Webhook URL.                                                    |
 | `--webhook.<name>.method`              | `OVERDUE__WEBHOOK_<NAME>_METHOD`              | `POST`          | HTTP method: `POST`, `PUT`, `PATCH`, or `DELETE`.               |
 | `--webhook.<name>.timeout`             | `OVERDUE__WEBHOOK_<NAME>_TIMEOUT`             | `10s`           | HTTP request timeout.                                           |
-| `--webhook.<name>.skip-insecure`       | `OVERDUE__WEBHOOK_<NAME>_SKIP_INSECURE`       | `false`         | Skip TLS certificate verification.                              |
+| `--webhook.<name>.tls-skip-verify`     | `OVERDUE__WEBHOOK_<NAME>_TLS_SKIP_VERIFY`     | `false`         | Skip TLS certificate verification.                              |
 | `--webhook.<name>.send-resolved`       | `OVERDUE__WEBHOOK_<NAME>_SEND_RESOLVED`       | `false`         | Send resolved notifications to this receiver.                   |
 | `--webhook.<name>.subject-template`    | `OVERDUE__WEBHOOK_<NAME>_SUBJECT_TEMPLATE`    | default subject | Subject/title template.                                         |
 | `--webhook.<name>.headers`             | `OVERDUE__WEBHOOK_<NAME>_HEADERS`             | empty           | HTTP headers in `KEY=VALUE` format.                             |
@@ -111,20 +111,20 @@ If no notification targets are configured, Overdue still runs and records status
 
 ### Email flags
 
-| Flag pattern                        | Environment variable pattern               | Default         | Description                                   |
-| ----------------------------------- | ------------------------------------------ | --------------- | --------------------------------------------- |
-| `--email.<name>.smtp-host`          | `OVERDUE__EMAIL_<NAME>_SMTP_HOST`          | required        | SMTP host.                                    |
-| `--email.<name>.smtp-port`          | `OVERDUE__EMAIL_<NAME>_SMTP_PORT`          | `587`           | SMTP port.                                    |
-| `--email.<name>.smtp-user`          | `OVERDUE__EMAIL_<NAME>_SMTP_USER`          | empty           | SMTP username.                                |
-| `--email.<name>.smtp-pass`          | `OVERDUE__EMAIL_<NAME>_SMTP_PASS`          | empty           | SMTP password.                                |
-| `--email.<name>.smtp-skip-insecure` | `OVERDUE__EMAIL_<NAME>_SMTP_SKIP_INSECURE` | `false`         | Skip SMTP TLS certificate verification.       |
-| `--email.<name>.send-resolved`      | `OVERDUE__EMAIL_<NAME>_SEND_RESOLVED`      | `false`         | Send resolved notifications to this receiver. |
-| `--email.<name>.subject-template`   | `OVERDUE__EMAIL_<NAME>_SUBJECT_TEMPLATE`   | default subject | Email subject template.                       |
-| `--email.<name>.from`               | `OVERDUE__EMAIL_<NAME>_FROM`               | required        | Sender address.                               |
-| `--email.<name>.to`                 | `OVERDUE__EMAIL_<NAME>_TO`                 | required        | Recipient address. May be repeated.           |
-| `--email.<name>.headers`            | `OVERDUE__EMAIL_<NAME>_HEADERS`            | empty           | Email headers in `KEY=VALUE` format.          |
-| `--email.<name>.custom-data`        | `OVERDUE__EMAIL_<NAME>_CUSTOM_DATA`        | empty           | Custom template data in `KEY=VALUE` format.   |
-| `--email.<name>.template`           | `OVERDUE__EMAIL_<NAME>_TEMPLATE`           | required        | Body template path or `builtin:<name>`.       |
+| Flag pattern                          | Environment variable pattern                 | Default         | Description                                   |
+| ------------------------------------- | -------------------------------------------- | --------------- | --------------------------------------------- |
+| `--email.<name>.smtp-host`            | `OVERDUE__EMAIL_<NAME>_SMTP_HOST`            | required        | SMTP host.                                    |
+| `--email.<name>.smtp-port`            | `OVERDUE__EMAIL_<NAME>_SMTP_PORT`            | `587`           | SMTP port.                                    |
+| `--email.<name>.smtp-user`            | `OVERDUE__EMAIL_<NAME>_SMTP_USER`            | empty           | SMTP username.                                |
+| `--email.<name>.smtp-pass`            | `OVERDUE__EMAIL_<NAME>_SMTP_PASS`            | empty           | SMTP password.                                |
+| `--email.<name>.smtp-tls-skip-verify` | `OVERDUE__EMAIL_<NAME>_SMTP_TLS_SKIP_VERIFY` | `false`         | Skip SMTP TLS certificate verification.       |
+| `--email.<name>.send-resolved`        | `OVERDUE__EMAIL_<NAME>_SEND_RESOLVED`        | `false`         | Send resolved notifications to this receiver. |
+| `--email.<name>.subject-template`     | `OVERDUE__EMAIL_<NAME>_SUBJECT_TEMPLATE`     | default subject | Email subject template.                       |
+| `--email.<name>.from`                 | `OVERDUE__EMAIL_<NAME>_FROM`                 | required        | Sender address.                               |
+| `--email.<name>.to`                   | `OVERDUE__EMAIL_<NAME>_TO`                   | required        | Recipient address. May be repeated.           |
+| `--email.<name>.headers`              | `OVERDUE__EMAIL_<NAME>_HEADERS`              | empty           | Email headers in `KEY=VALUE` format.          |
+| `--email.<name>.custom-data`          | `OVERDUE__EMAIL_<NAME>_CUSTOM_DATA`          | empty           | Custom template data in `KEY=VALUE` format.   |
+| `--email.<name>.template`             | `OVERDUE__EMAIL_<NAME>_TEMPLATE`             | required        | Body template path or `builtin:<name>`.       |
 
 ## Webhook examples
 
@@ -322,6 +322,14 @@ Liveness probe.
 curl http://localhost:8080/healthz
 ```
 
+### `GET /readyz` and `POST /readyz`
+
+Readiness probe. If this endpoint is mounted, startup configuration and notification setup completed successfully.
+
+```sh
+curl http://localhost:8080/readyz
+```
+
 ### `GET /version`
 
 Returns build version and commit.
@@ -362,6 +370,7 @@ With this prefix, endpoints are served below `/watchdog`:
 /watchdog/status
 /watchdog/metrics
 /watchdog/healthz
+/watchdog/readyz
 ```
 
 Set `--public-url` to the externally reachable base URL if you want templates to include correct links:

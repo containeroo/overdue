@@ -215,6 +215,29 @@ func TestParseArgs(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	t.Run("accepts renamed tls skip verify flags", func(t *testing.T) {
+		t.Parallel()
+
+		cfg, err := ParseArgs([]string{
+			"--expected-every=10s",
+			"--alerting-delay=2s",
+			"--webhook.ops.url=https://example.test/webhook",
+			"--webhook.ops.template=builtin:slack-incoming-webhook",
+			"--webhook.ops.tls-skip-verify",
+			"--email.ops.smtp-host=smtp.example.test",
+			"--email.ops.from=overdue@example.test",
+			"--email.ops.to=ops@example.test",
+			"--email.ops.template=builtin:email-html",
+			"--email.ops.smtp-tls-skip-verify",
+		}, "dev")
+
+		require.NoError(t, err)
+		require.Len(t, cfg.Notifications.Webhooks, 1)
+		require.Len(t, cfg.Notifications.Emails, 1)
+		assert.True(t, cfg.Notifications.Webhooks[0].TLSSkipVerify)
+		assert.True(t, cfg.Notifications.Emails[0].SMTPTLSSkipVerify)
+	})
+
 	t.Run("rejects invalid webhook timeout", func(t *testing.T) {
 		t.Parallel()
 

@@ -70,7 +70,7 @@ func webhookReceiver(templateFS fs.FS, app config.AppData, cfg config.WebhookCon
 	}
 
 	clientOptions := []webhook.ClientOption{webhook.WithProxyFromEnvironment()}
-	if cfg.SkipInsecure {
+	if cfg.TLSSkipVerify {
 		clientOptions = append(clientOptions, webhook.WithSkipTLSVerify())
 	}
 
@@ -124,7 +124,7 @@ func emailReceiver(templateFS fs.FS, app config.AppData, cfg config.EmailConfig)
 		From:          cfg.From,
 		To:            append([]string(nil), cfg.To...),
 		Headers:       maps.Clone(cfg.Headers),
-		SkipTLSVerify: cfg.SkipTLSVerify,
+		SkipTLSVerify: cfg.SMTPTLSSkipVerify,
 		Template:      tmpl,
 		SubjectTmpl:   subjectTmpl,
 	})

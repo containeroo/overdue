@@ -28,7 +28,7 @@ func notificationTestFlagSet(t *testing.T, args []string) *tinyflags.FlagSet {
 		http.MethodDelete,
 	)
 	webhookGroup.Duration("timeout", 10*time.Second, "HTTP timeout")
-	webhookGroup.Bool("skip-insecure", false, "Skip TLS certificate verification")
+	webhookGroup.Bool("tls-skip-verify", false, "Skip TLS certificate verification")
 	webhookGroup.Bool("send-resolved", false, "Send resolved notifications")
 	webhookGroup.String("subject-template", defaultSubjectTemplate, "Subject template")
 	webhookGroup.StringSlice("headers", nil, "HTTP headers")
@@ -51,7 +51,7 @@ func notificationTestFlagSet(t *testing.T, args []string) *tinyflags.FlagSet {
 	emailGroup.Int("smtp-port", 587, "SMTP port")
 	emailGroup.String("smtp-user", "", "SMTP username")
 	emailGroup.String("smtp-pass", "", "SMTP password")
-	emailGroup.Bool("smtp-skip-insecure", false, "Skip SMTP TLS certificate verification")
+	emailGroup.Bool("smtp-tls-skip-verify", false, "Skip SMTP TLS certificate verification")
 	emailGroup.Bool("send-resolved", false, "Send resolved notifications")
 	emailGroup.String("subject-template", defaultSubjectTemplate, "Subject template")
 	emailGroup.String("from", "", "Sender")

@@ -33,7 +33,7 @@ func registerWebhookFlags(tf *tinyflags.FlagSet) {
 		Validate(durationGreaterThanZero()).
 		Placeholder("DURATION")
 
-	webhookGroup.Bool("skip-insecure", false, "Skip TLS certificate verification")
+	webhookGroup.Bool("tls-skip-verify", false, "Skip TLS certificate verification")
 	webhookGroup.Bool("send-resolved", false, "Send a resolved webhook notification when check-ins resume after alerting")
 
 	webhookGroup.String("subject-template", config.DefaultSubjectTemplate(), "Template for webhook title or subject")

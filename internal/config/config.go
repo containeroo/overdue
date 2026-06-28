@@ -63,7 +63,7 @@ type WebhookConfig struct {
 	Method            string
 	Headers           map[string]string
 	Timeout           time.Duration
-	SkipInsecure      bool
+	TLSSkipVerify     bool
 	SendResolved      bool
 	SubjectTemplate   string
 	Template          string
@@ -74,19 +74,19 @@ type WebhookConfig struct {
 
 // EmailConfig contains one configured email notification target.
 type EmailConfig struct {
-	Name            string
-	Host            string
-	Port            int
-	User            string
-	Pass            string
-	SkipTLSVerify   bool
-	SendResolved    bool
-	From            string
-	To              []string
-	Headers         map[string]string
-	SubjectTemplate string
-	Template        string
-	CustomData      map[string]string
+	Name              string
+	Host              string
+	Port              int
+	User              string
+	Pass              string
+	SMTPTLSSkipVerify bool
+	SendResolved      bool
+	From              string
+	To                []string
+	Headers           map[string]string
+	SubjectTemplate   string
+	Template          string
+	CustomData        map[string]string
 }
 
 const (

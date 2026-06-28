@@ -105,7 +105,7 @@ func webhooksFromDynamicGroup(version string, group *tinyflags.DynamicGroup) ([]
 			Method:            method,
 			Headers:           headers,
 			Timeout:           tinyflags.GetOrDefaultDynamic[time.Duration](group, id, "timeout"),
-			SkipInsecure:      tinyflags.GetOrDefaultDynamic[bool](group, id, "skip-insecure"),
+			TLSSkipVerify:     tinyflags.GetOrDefaultDynamic[bool](group, id, "tls-skip-verify"),
 			SendResolved:      tinyflags.GetOrDefaultDynamic[bool](group, id, "send-resolved"),
 			SubjectTemplate:   tinyflags.GetOrDefaultDynamic[string](group, id, "subject-template"),
 			Template:          tinyflags.GetOrDefaultDynamic[string](group, id, "template"),
@@ -139,19 +139,19 @@ func emailsFromDynamicGroup(version string, group *tinyflags.DynamicGroup) ([]Em
 		}
 
 		configs = append(configs, EmailConfig{
-			Name:            id,
-			Host:            tinyflags.GetOrDefaultDynamic[string](group, id, "smtp-host"),
-			Port:            tinyflags.GetOrDefaultDynamic[int](group, id, "smtp-port"),
-			User:            tinyflags.GetOrDefaultDynamic[string](group, id, "smtp-user"),
-			Pass:            tinyflags.GetOrDefaultDynamic[string](group, id, "smtp-pass"),
-			SkipTLSVerify:   tinyflags.GetOrDefaultDynamic[bool](group, id, "smtp-skip-insecure"),
-			SendResolved:    tinyflags.GetOrDefaultDynamic[bool](group, id, "send-resolved"),
-			From:            tinyflags.GetOrDefaultDynamic[string](group, id, "from"),
-			To:              tinyflags.GetOrDefaultDynamic[[]string](group, id, "to"),
-			Headers:         headers,
-			SubjectTemplate: tinyflags.GetOrDefaultDynamic[string](group, id, "subject-template"),
-			Template:        tinyflags.GetOrDefaultDynamic[string](group, id, "template"),
-			CustomData:      customData,
+			Name:              id,
+			Host:              tinyflags.GetOrDefaultDynamic[string](group, id, "smtp-host"),
+			Port:              tinyflags.GetOrDefaultDynamic[int](group, id, "smtp-port"),
+			User:              tinyflags.GetOrDefaultDynamic[string](group, id, "smtp-user"),
+			Pass:              tinyflags.GetOrDefaultDynamic[string](group, id, "smtp-pass"),
+			SMTPTLSSkipVerify: tinyflags.GetOrDefaultDynamic[bool](group, id, "smtp-tls-skip-verify"),
+			SendResolved:      tinyflags.GetOrDefaultDynamic[bool](group, id, "send-resolved"),
+			From:              tinyflags.GetOrDefaultDynamic[string](group, id, "from"),
+			To:                tinyflags.GetOrDefaultDynamic[[]string](group, id, "to"),
+			Headers:           headers,
+			SubjectTemplate:   tinyflags.GetOrDefaultDynamic[string](group, id, "subject-template"),
+			Template:          tinyflags.GetOrDefaultDynamic[string](group, id, "template"),
+			CustomData:        customData,
 		})
 	}
 

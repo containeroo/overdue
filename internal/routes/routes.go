@@ -25,6 +25,8 @@ func NewRouter(
 	mux.Handle("GET /metrics", api.Metrics())
 	mux.Handle("GET /healthz", api.Healthz())
 	mux.Handle("POST /healthz", api.Healthz())
+	mux.Handle("GET /readyz", api.Readyz())
+	mux.Handle("POST /readyz", api.Readyz())
 
 	return httpprefix.MountUnderPrefix(mux, routePrefix)
 }

@@ -146,6 +146,30 @@ func TestNewRouter(t *testing.T) {
 		assert.Equal(t, "ok", rec.Body.String())
 	})
 
+	t.Run("mounts readyz route", func(t *testing.T) {
+		t.Parallel()
+
+		h := testRouter("/checkin", "/overdue", false, "")
+
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/overdue/readyz", nil))
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "ok", rec.Body.String())
+	})
+
+	t.Run("mounts post readyz route", func(t *testing.T) {
+		t.Parallel()
+
+		h := testRouter("/checkin", "/overdue", false, "")
+
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/overdue/readyz", nil))
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "ok", rec.Body.String())
+	})
+
 	t.Run("rejects unauthorized status route", func(t *testing.T) {
 		t.Parallel()
 
