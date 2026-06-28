@@ -13,7 +13,7 @@ func TestHeaderMap(t *testing.T) {
 	t.Run("returns nil for empty headers", func(t *testing.T) {
 		t.Parallel()
 
-		headers, err := headerMap("webhook", "ops", nil)
+		headers, err := HeaderMap("webhook", "ops", nil)
 
 		require.NoError(t, err)
 		assert.Nil(t, headers)
@@ -22,7 +22,7 @@ func TestHeaderMap(t *testing.T) {
 	t.Run("parses repeated header values", func(t *testing.T) {
 		t.Parallel()
 
-		headers, err := headerMap("webhook", "ops", []string{
+		headers, err := HeaderMap("webhook", "ops", []string{
 			"Authorization=Bearer token",
 			"X-Team=platform",
 		})
@@ -37,7 +37,7 @@ func TestHeaderMap(t *testing.T) {
 	t.Run("parses comma separated header values", func(t *testing.T) {
 		t.Parallel()
 
-		headers, err := headerMap("webhook", "ops", []string{
+		headers, err := HeaderMap("webhook", "ops", []string{
 			"Authorization=Bearer token, X-Team=platform",
 		})
 
@@ -51,7 +51,7 @@ func TestHeaderMap(t *testing.T) {
 	t.Run("rejects invalid header values", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := headerMap("webhook", "ops", []string{"invalid"})
+		_, err := HeaderMap("webhook", "ops", []string{"invalid"})
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), `invalid "--webhook.ops.headers"`)
@@ -60,7 +60,7 @@ func TestHeaderMap(t *testing.T) {
 	t.Run("rejects duplicate headers across flag values", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := headerMap("webhook", "ops", []string{
+		_, err := HeaderMap("webhook", "ops", []string{
 			"X-Team=platform",
 			"X-Team=ops",
 		})
