@@ -43,18 +43,6 @@ func TestNewCheckIn(t *testing.T) {
 			NewCheckIn(checkInMonitor, nil)
 		})
 	})
-
-	t.Run("records initial monitor metrics", func(t *testing.T) {
-		t.Parallel()
-
-		checkInMonitor := monitor.New("prometheus", time.Minute, time.Second, testLogger())
-		registry := metrics.NewRegistry()
-
-		_ = NewCheckIn(checkInMonitor, registry)
-
-		body := scrapeMetrics(t, registry)
-		assert.Contains(t, body, `overdue_monitor_phase{check_in="prometheus",phase="scheduled"} 1`)
-	})
 }
 
 func TestService_CheckInName(t *testing.T) {
@@ -97,7 +85,6 @@ func TestService_RecordCheckIn(t *testing.T) {
 
 		body := scrapeMetrics(t, registry)
 		assert.Contains(t, body, `overdue_checkins_received_total{check_in="prometheus"} 1`)
-		assert.Contains(t, body, `overdue_monitor_phase{check_in="prometheus",phase="awaiting"} 1`)
 	})
 }
 

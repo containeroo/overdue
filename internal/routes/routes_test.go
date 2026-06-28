@@ -155,6 +155,7 @@ func testRouter(checkInPath, routePrefix, authToken string) http.Handler {
 	logger := testLogger()
 	checkInMonitor := monitor.New("default", time.Minute, time.Second, logger)
 	registry := metrics.NewRegistry()
+	registry.SetMonitorSnapshot(checkInMonitor.CheckInName(), checkInMonitor.Snapshot())
 	svc := service.NewCheckIn(checkInMonitor, registry)
 	api := handler.NewAPI(authToken, svc, registry, false, "dev", "none", logger)
 

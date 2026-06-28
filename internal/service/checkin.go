@@ -14,7 +14,7 @@ type CheckInMonitor interface {
 	Snapshot() monitor.Snapshot
 }
 
-// CheckIn records incoming check-ins and owns application side effects such as metrics.
+// CheckIn records incoming check-ins and owns API-side metrics.
 type CheckIn struct {
 	checkInMonitor CheckInMonitor
 	metrics        *metrics.Registry
@@ -42,12 +42,10 @@ func NewCheckIn(checkInMonitor CheckInMonitor, registry *metrics.Registry) *Chec
 		panic("check-in metrics registry must not be nil")
 	}
 
-	service := &CheckIn{
+	return &CheckIn{
 		checkInMonitor: checkInMonitor,
 		metrics:        registry,
 	}
-	registry.SetMonitorSnapshot(checkInMonitor.CheckInName(), checkInMonitor.Snapshot())
-	return service
 }
 
 // CheckInName returns the configured check-in monitor name.
@@ -66,18 +64,14 @@ func (s *CheckIn) RecordCheckIn(at time.Time) RecordCheckInResult {
 		PreviousPhase: record.PreviousPhase,
 	}
 	s.metrics.IncCheckInReceived(result.CheckInName)
-	s.metrics.SetMonitorSnapshot(result.CheckInName, result.Snapshot)
 
 	return result
 }
 
 // Snapshot returns the current check-in monitor snapshot.
 func (s *CheckIn) Snapshot() SnapshotResult {
-	result := SnapshotResult{
+	return SnapshotResult{
 		CheckInName: s.checkInMonitor.CheckInName(),
 		Snapshot:    s.checkInMonitor.Snapshot(),
 	}
-	s.metrics.SetMonitorSnapshot(result.CheckInName, result.Snapshot)
-
-	return result
 }
