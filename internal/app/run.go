@@ -9,7 +9,7 @@ import (
 
 	"github.com/containeroo/httpgrace/server"
 	kit "github.com/containeroo/notifykit/notify"
-	"github.com/containeroo/overdue/internal/flag"
+	"github.com/containeroo/overdue/internal/cli"
 	"github.com/containeroo/overdue/internal/handler"
 	"github.com/containeroo/overdue/internal/logging"
 	"github.com/containeroo/overdue/internal/metrics"
@@ -29,7 +29,7 @@ func Run(
 	stdOut, stdErr io.Writer,
 	templateFS fs.FS,
 ) error {
-	flags, err := flag.ParseArgs(args, version)
+	flags, err := cli.ParseArgs(args, version)
 	if err != nil {
 		if tinyflags.IsHelpRequested(err) || tinyflags.IsVersionRequested(err) {
 			_, _ = fmt.Fprint(stdOut, err)

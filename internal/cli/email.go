@@ -1,4 +1,4 @@
-package flag
+package cli
 
 import (
 	"github.com/containeroo/overdue/internal/utils"
