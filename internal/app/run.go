@@ -86,13 +86,14 @@ func Run(
 
 	ctx, stop := server.SignalContext(ctx)
 	defer stop()
+
 	if err := notifyManager.Start(ctx); err != nil {
-		if shutdownRequested(err) {
-			setupLog.Info("notification workers not started; shutdown already requested")
-		} else {
-			setupLog.Error("notification start error", "error", err)
-			return err
+		if errors.Is(err, context.Canceled) {
+			return nil
 		}
+
+		setupLog.Error("notification manager start error", "error", err)
+		return err
 	}
 
 	mon := monitor.New(
@@ -134,17 +135,17 @@ func Run(
 		router,
 		logger.With("component", "server"),
 	); err != nil {
-		if shutdownRequested(err) {
+		if errors.Is(err, context.Canceled) {
 			return nil
 		}
-		setupLog.Error("server run", "listenAddr", cfg.ListenAddr.String(), "error", err)
+
+		setupLog.Error(
+			"server run",
+			"listenAddr", cfg.ListenAddr.String(),
+			"error", err,
+		)
 		return err
 	}
 
 	return nil
-}
-
-// shutdownRequested reports whether err represents the caller's normal shutdown path.
-func shutdownRequested(err error) bool {
-	return errors.Is(err, context.Canceled)
 }
