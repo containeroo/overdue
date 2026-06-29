@@ -81,9 +81,9 @@ func webhookReceiver(
 		return nil, fmt.Errorf("load webhook %q template: %w", cfg.Name, err)
 	}
 
-	subjectTmpl, err := templates.ParseStringTemplate("webhook-subject", cfg.SubjectTemplate)
+	titleTmpl, err := templates.ParseStringTemplate("webhook-title", cfg.TitleTemplate)
 	if err != nil {
-		return nil, fmt.Errorf("parse webhook %q subject template: %w", cfg.Name, err)
+		return nil, fmt.Errorf("parse webhook %q title template: %w", cfg.Name, err)
 	}
 
 	clientOptions := []webhook.ClientOption{webhook.WithProxyFromEnvironment()}
@@ -98,7 +98,7 @@ func webhookReceiver(
 			Method:            cfg.Method,
 			Headers:           maps.Clone(cfg.Headers),
 			Template:          tmpl,
-			SubjectTmpl:       subjectTmpl,
+			TitleTmpl:         titleTmpl,
 			ValidateJSON:      true,
 			LogResponse:       webhookLogResponse(cfg.LogResponse),
 			ResponseBodyLimit: cfg.ResponseBodyLimit,
@@ -131,9 +131,9 @@ func emailReceiver(
 		return nil, fmt.Errorf("load email %q template: %w", cfg.Name, err)
 	}
 
-	subjectTmpl, err := templates.ParseStringTemplate("email-subject", cfg.SubjectTemplate)
+	titleTmpl, err := templates.ParseStringTemplate("email-title", cfg.TitleTemplate)
 	if err != nil {
-		return nil, fmt.Errorf("parse email %q subject template: %w", cfg.Name, err)
+		return nil, fmt.Errorf("parse email %q title template: %w", cfg.Name, err)
 	}
 
 	target := email.NewFromTarget(email.Target{
@@ -147,7 +147,7 @@ func emailReceiver(
 		Headers:       maps.Clone(cfg.Headers),
 		SkipTLSVerify: cfg.SMTPTLSSkipVerify,
 		Template:      tmpl,
-		SubjectTmpl:   subjectTmpl,
+		SubjectTmpl:   titleTmpl,
 	})
 
 	vars := varsFromConfig(app, cfg.CustomData)

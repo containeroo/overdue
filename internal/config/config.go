@@ -76,7 +76,7 @@ type WebhookConfig struct {
 	Timeout           time.Duration
 	TLSSkipVerify     bool
 	SendResolved      bool
-	SubjectTemplate   string
+	TitleTemplate     string
 	Template          string
 	CustomData        map[string]string
 	LogResponse       WebhookLogResponse
@@ -95,7 +95,7 @@ type EmailConfig struct {
 	From              string
 	To                []string
 	Headers           map[string]string
-	SubjectTemplate   string
+	TitleTemplate     string
 	Template          string
 	CustomData        map[string]string
 }

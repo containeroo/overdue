@@ -102,7 +102,7 @@ If no notification targets are configured, Overdue still runs and records status
 | `--webhook.<name>.timeout`             | `OVERDUE__WEBHOOK_<NAME>_TIMEOUT`             | `10s`        | HTTP request timeout.                                           |
 | `--webhook.<name>.tls-skip-verify`     | `OVERDUE__WEBHOOK_<NAME>_TLS_SKIP_VERIFY`     | `false`      | Skip TLS certificate verification.                              |
 | `--webhook.<name>.send-resolved`       | `OVERDUE__WEBHOOK_<NAME>_SEND_RESOLVED`       | `false`      | Send resolved notifications to this receiver.                   |
-| `--webhook.<name>.subject-template`    | `OVERDUE__WEBHOOK_<NAME>_SUBJECT_TEMPLATE`    | status title | Optional subject/title template.                                |
+| `--webhook.<name>.title-template`      | `OVERDUE__WEBHOOK_<NAME>_TITLE_TEMPLATE`      | status title | Optional notification title template.                           |
 | `--webhook.<name>.headers`             | `OVERDUE__WEBHOOK_<NAME>_HEADERS`             | empty        | HTTP headers in `KEY=VALUE` format.                             |
 | `--webhook.<name>.custom-data`         | `OVERDUE__WEBHOOK_<NAME>_CUSTOM_DATA`         | empty        | Custom template data in `KEY=VALUE` format.                     |
 | `--webhook.<name>.template`            | `OVERDUE__WEBHOOK_<NAME>_TEMPLATE`            | required     | Body template path or `builtin:<name>`.                         |
@@ -119,7 +119,7 @@ If no notification targets are configured, Overdue still runs and records status
 | `--email.<name>.smtp-pass`            | `OVERDUE__EMAIL_<NAME>_SMTP_PASS`            | empty        | SMTP password.                                |
 | `--email.<name>.smtp-tls-skip-verify` | `OVERDUE__EMAIL_<NAME>_SMTP_TLS_SKIP_VERIFY` | `false`      | Skip SMTP TLS certificate verification.       |
 | `--email.<name>.send-resolved`        | `OVERDUE__EMAIL_<NAME>_SEND_RESOLVED`        | `false`      | Send resolved notifications to this receiver. |
-| `--email.<name>.subject-template`     | `OVERDUE__EMAIL_<NAME>_SUBJECT_TEMPLATE`     | status title | Optional email subject template.              |
+| `--email.<name>.title-template`       | `OVERDUE__EMAIL_<NAME>_TITLE_TEMPLATE`       | status title | Optional notification title template.         |
 | `--email.<name>.from`                 | `OVERDUE__EMAIL_<NAME>_FROM`                 | required     | Sender address.                               |
 | `--email.<name>.to`                   | `OVERDUE__EMAIL_<NAME>_TO`                   | required     | Recipient address. May be repeated.           |
 | `--email.<name>.headers`              | `OVERDUE__EMAIL_<NAME>_HEADERS`              | empty        | Email headers in `KEY=VALUE` format.          |
@@ -225,8 +225,7 @@ Templates receive the following data:
 | `.Phase`          | `string`            | Monitor phase.                                               |
 | `.Status`         | `string`            | Notification status: `alerting` or `resolved`.               |
 | `.Resolved`       | `bool`              | Whether this is a resolved notification.                     |
-| `.Subject`        | `string`            | Rendered subject.                                            |
-| `.Title`          | `string`            | Title for the notification. Currently the rendered subject.  |
+| `.Title`          | `string`            | Rendered notification title.                                 |
 | `.Text`           | `string`            | Default plain text summary.                                  |
 | `.Receiver`       | `string`            | Receiver name.                                               |
 | `.Vars`           | `map[string]any`    | Public receiver variables. Custom data is also exposed here. |
@@ -259,15 +258,15 @@ Example with a default:
 {{ index .CustomData "channel" | default "alertmanager" | withPrefix "#" }}
 ```
 
-## Subject templates
+## Title templates
 
-Subject templates are optional. When no subject template is configured, the flag default renders `[OVERDUE] Event Notification` or `[RESOLVED] Event Notification`. Built-in body templates render their title from the event data.
+Title templates are optional. When no title template is configured, the flag default renders `[OVERDUE] Event Notification` or `[RESOLVED] Event Notification`. Built-in body templates render their title from the event data.
 
-Override the subject per receiver when you need a custom Slack title or email subject:
+Override the title per receiver when you need a custom Slack title or email subject:
 
 ```sh
--e OVERDUE__WEBHOOK_OPS_SUBJECT_TEMPLATE='{{ if .Resolved }}[OK]{{ else }}[ALERT]{{ end }} {{ .CheckInName }}'
--e OVERDUE__EMAIL_OPS_SUBJECT_TEMPLATE='{{ if .Resolved }}[OK]{{ else }}[ALERT]{{ end }} {{ .CheckInName }}'
+-e OVERDUE__WEBHOOK_OPS_TITLE_TEMPLATE='{{ if .Resolved }}[OK]{{ else }}[ALERT]{{ end }} {{ .CheckInName }}'
+-e OVERDUE__EMAIL_OPS_TITLE_TEMPLATE='{{ if .Resolved }}[OK]{{ else }}[ALERT]{{ end }} {{ .CheckInName }}'
 ```
 
 ## HTTP API

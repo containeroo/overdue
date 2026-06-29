@@ -23,13 +23,12 @@ func TestNewData(t *testing.T) {
 			CheckInName:    "api",
 			Now:            now,
 			Status:         monitor.StatusAlerting,
-		}, "ops", vars, "subject")
+		}, "ops", vars, "title")
 
 		assert.Equal(t, "incident-1", data.IncidentID)
 		assert.Equal(t, "notification-1", data.NotificationID)
 		assert.Equal(t, "api", data.CheckInName)
-		assert.Equal(t, "subject", data.Title)
-		assert.Equal(t, "subject", data.Subject)
+		assert.Equal(t, "title", data.Title)
 		assert.Equal(t, "ops", data.Receiver)
 		assert.Equal(t, map[string]any{"channel": "alerts"}, data.Vars)
 		assert.Equal(t, map[string]string{"channel": "alerts"}, data.CustomData)

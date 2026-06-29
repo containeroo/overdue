@@ -63,7 +63,7 @@ Notification templates receive a check-in lifecycle event.
 | `.Phase`          | string            | Monitor phase, for example `alerting` or `awaiting`.                                          |
 | `.Status`         | string            | Notification event status: `alerting` or `resolved`.                                          |
 | `.Resolved`       | bool              | `true` for resolved notifications.                                                            |
-| `.Title`          | string            | Rendered notification title. Available in body and subject templates.                         |
+| `.Title`          | string            | Rendered notification title. Available in body and title templates.                           |
 | `.Text`           | string            | Rendered notification text. Available in body templates.                                      |
 | `.App`            | struct            | Application metadata and links. URL fields are empty when no public URL is configured.        |
 | `.CustomData`     | map[string]string | Target-local custom data from `--webhook.<name>.custom-data` or `--email.<name>.custom-data`. |

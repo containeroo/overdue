@@ -32,7 +32,6 @@ type Data struct {
 	Resolved       bool
 	Title          string
 	Text           string
-	Subject        string
 	App            AppData
 	Receiver       string
 	Vars           map[string]any
@@ -40,7 +39,7 @@ type Data struct {
 }
 
 // NewData builds template data from a monitor event and notifykit receiver vars.
-func NewData(event monitor.Event, receiver string, vars map[string]any, subject string) Data {
+func NewData(event monitor.Event, receiver string, vars map[string]any, title string) Data {
 	return Data{
 		IncidentID:     event.IncidentID,
 		NotificationID: event.NotificationID,
@@ -53,9 +52,8 @@ func NewData(event monitor.Event, receiver string, vars map[string]any, subject 
 		Phase:          event.Phase,
 		Status:         event.Status,
 		Resolved:       event.Resolved,
-		Title:          subject,
+		Title:          title,
 		Text:           text(event),
-		Subject:        subject,
 		App:            appData(vars),
 		Receiver:       receiver,
 		Vars:           publicVars(vars),

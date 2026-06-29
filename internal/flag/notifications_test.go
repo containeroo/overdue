@@ -83,7 +83,7 @@ func TestWebhooksFromDynamicGroup(t *testing.T) {
 			"--webhook.ops.timeout=5s",
 			"--webhook.ops.tls-skip-verify=true",
 			"--webhook.ops.send-resolved=true",
-			"--webhook.ops.subject-template=ops subject",
+			"--webhook.ops.title-template=ops title",
 			"--webhook.ops.template=ops.tmpl",
 			"--webhook.ops.log-response=body",
 			"--webhook.ops.response-body-limit=128",
@@ -101,7 +101,7 @@ func TestWebhooksFromDynamicGroup(t *testing.T) {
 			Timeout:           5 * time.Second,
 			TLSSkipVerify:     true,
 			SendResolved:      true,
-			SubjectTemplate:   "ops subject",
+			TitleTemplate:     "ops title",
 			Template:          "ops.tmpl",
 			CustomData:        map[string]string{"channel": "#ops"},
 			LogResponse:       config.WebhookLogResponseBody,
@@ -124,7 +124,7 @@ func TestWebhooksFromDynamicGroup(t *testing.T) {
 			URL:               "https://example.test/webhook",
 			Headers:           map[string]string{"User-Agent": "overdue/dev"},
 			Timeout:           10 * time.Second,
-			SubjectTemplate:   defaultSubjectTemplate,
+			TitleTemplate:     defaultTitleTemplate,
 			LogResponse:       config.WebhookLogResponseSummary,
 			ResponseBodyLimit: 4096,
 		}, configs[0])
@@ -162,7 +162,7 @@ func TestEmailsFromDynamicGroup(t *testing.T) {
 			"--email.ops.to=ops@example.test",
 			"--email.ops.headers=X-Trace=yes",
 			"--email.ops.custom-data=owner=platform",
-			"--email.ops.subject-template=subject",
+			"--email.ops.title-template=title",
 			"--email.ops.template=email.tmpl",
 		})
 
@@ -181,7 +181,7 @@ func TestEmailsFromDynamicGroup(t *testing.T) {
 			From:              "overdue@example.test",
 			To:                []string{"ops@example.test"},
 			Headers:           map[string]string{"X-Mailer": "overdue/dev", "X-Trace": "yes"},
-			SubjectTemplate:   "subject",
+			TitleTemplate:     "title",
 			Template:          "email.tmpl",
 			CustomData:        map[string]string{"owner": "platform"},
 		}, configs[0])
@@ -201,13 +201,13 @@ func TestEmailsFromDynamicGroup(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, configs, 1)
 		assert.Equal(t, config.EmailConfig{
-			Name:            "ops",
-			Host:            "smtp.example.test",
-			Port:            587,
-			From:            "overdue@example.test",
-			To:              []string{"ops@example.test"},
-			Headers:         map[string]string{"X-Mailer": "overdue/dev"},
-			SubjectTemplate: defaultSubjectTemplate,
+			Name:          "ops",
+			Host:          "smtp.example.test",
+			Port:          587,
+			From:          "overdue@example.test",
+			To:            []string{"ops@example.test"},
+			Headers:       map[string]string{"X-Mailer": "overdue/dev"},
+			TitleTemplate: defaultTitleTemplate,
 		}, configs[0])
 	})
 }
@@ -245,7 +245,7 @@ func notificationTestFlagSet(t *testing.T, args []string) *tinyflags.FlagSet {
 	webhookGroup.Duration("timeout", 10*time.Second, "HTTP timeout")
 	webhookGroup.Bool("tls-skip-verify", false, "Skip TLS certificate verification")
 	webhookGroup.Bool("send-resolved", false, "Send resolved notifications")
-	webhookGroup.String("subject-template", defaultSubjectTemplate, "Subject template")
+	webhookGroup.String("title-template", defaultTitleTemplate, "Title template")
 	webhookGroup.StringSlice("headers", nil, "HTTP headers")
 	webhookGroup.StringSlice("custom-data", nil, "Custom data")
 	webhookGroup.String("template", "", "Body template")
@@ -269,7 +269,7 @@ func notificationTestFlagSet(t *testing.T, args []string) *tinyflags.FlagSet {
 	emailGroup.Bool("smtp-tls-skip-verify", false, "Skip SMTP TLS certificate verification")
 	emailGroup.Bool("smtp-skip-insecure", false, "Deprecated alias for smtp-tls-skip-verify")
 	emailGroup.Bool("send-resolved", false, "Send resolved notifications")
-	emailGroup.String("subject-template", defaultSubjectTemplate, "Subject template")
+	emailGroup.String("title-template", defaultTitleTemplate, "Title template")
 	emailGroup.String("from", "", "Sender")
 	emailGroup.StringSlice("to", []string{}, "Recipients")
 	emailGroup.StringSlice("headers", nil, "Email headers")

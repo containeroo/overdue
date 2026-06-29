@@ -11,7 +11,7 @@ import (
 	"github.com/containeroo/tinyflags"
 )
 
-const defaultSubjectTemplate = `{{ if .Resolved }}[RESOLVED] Event Notification{{ else }}[OVERDUE] Event Notification{{ end }}`
+const defaultTitleTemplate = `{{ if .Resolved }}[RESOLVED] Event Notification{{ else }}[OVERDUE] Event Notification{{ end }}`
 
 // notificationsFromDynamicGroups converts parsed dynamic CLI groups into notification configuration.
 func notificationsFromDynamicGroups(version, siteRoot, checkInPath string, groups []*tinyflags.DynamicGroup) (config.Notifications, error) {
@@ -76,7 +76,7 @@ func webhooksFromDynamicGroup(version string, group *tinyflags.DynamicGroup) ([]
 			Timeout:           tinyflags.GetOrDefaultDynamic[time.Duration](group, id, "timeout"),
 			TLSSkipVerify:     tinyflags.GetOrDefaultDynamic[bool](group, id, "tls-skip-verify"),
 			SendResolved:      tinyflags.GetOrDefaultDynamic[bool](group, id, "send-resolved"),
-			SubjectTemplate:   tinyflags.GetOrDefaultDynamic[string](group, id, "subject-template"),
+			TitleTemplate:     tinyflags.GetOrDefaultDynamic[string](group, id, "title-template"),
 			Template:          tinyflags.GetOrDefaultDynamic[string](group, id, "template"),
 			CustomData:        customData,
 			LogResponse:       tinyflags.GetOrDefaultDynamic[config.WebhookLogResponse](group, id, "log-response"),
@@ -118,7 +118,7 @@ func emailsFromDynamicGroup(version string, group *tinyflags.DynamicGroup) ([]co
 			From:              tinyflags.GetOrDefaultDynamic[string](group, id, "from"),
 			To:                tinyflags.GetOrDefaultDynamic[[]string](group, id, "to"),
 			Headers:           headers,
-			SubjectTemplate:   tinyflags.GetOrDefaultDynamic[string](group, id, "subject-template"),
+			TitleTemplate:     tinyflags.GetOrDefaultDynamic[string](group, id, "title-template"),
 			Template:          tinyflags.GetOrDefaultDynamic[string](group, id, "template"),
 			CustomData:        customData,
 		})

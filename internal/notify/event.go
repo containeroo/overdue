@@ -36,9 +36,9 @@ func (e *Event) ReceiverIDs() []kit.ReceiverID {
 }
 
 // Data returns the receiver-scoped template data.
-func (e *Event) Data(receiver string, vars map[string]any, subject string) any {
+func (e *Event) Data(receiver string, vars map[string]any, title string) any {
 	if e == nil {
 		return nil
 	}
-	return NewData(e.MonitorEvent, receiver, vars, subject)
+	return NewData(e.MonitorEvent, receiver, vars, title)
 }

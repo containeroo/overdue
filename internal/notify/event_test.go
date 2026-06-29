@@ -69,6 +69,6 @@ func TestEvent_Data(t *testing.T) {
 
 		var event *Event
 
-		assert.Nil(t, event.Data("ops", nil, "subject"))
+		assert.Nil(t, event.Data("ops", nil, "title"))
 	})
 }

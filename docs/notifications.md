@@ -74,22 +74,21 @@ export OVERDUE__WEBHOOK_OPS_TEMPLATE=builtin:slack-incoming-webhook
 
 ### Webhook flags
 
-| Flag                                       | Environment variable pattern                      | Default                                      | Description                                                                          |
-| ------------------------------------------ | ------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `--webhook.<name>.url`                     | `OVERDUE__WEBHOOK_<NAME>_URL`                     | required                                     | Webhook URL.                                                                         |
-| `--webhook.<name>.method`                  | `OVERDUE__WEBHOOK_<NAME>_METHOD`                  | `POST`                                       | HTTP method: `POST`, `PUT`, `PATCH`, or `DELETE`.                                    |
-| `--webhook.<name>.timeout`                 | `OVERDUE__WEBHOOK_<NAME>_TIMEOUT`                 | `10s`                                        | HTTP timeout.                                                                        |
-| `--webhook.<name>.skip-insecure`           | `OVERDUE__WEBHOOK_<NAME>_SKIP_INSECURE`           | `false`                                      | Skip TLS certificate verification.                                                   |
-| `--webhook.<name>.send-resolved`           | `OVERDUE__WEBHOOK_<NAME>_SEND_RESOLVED`           | `false`                                      | Send a resolved notification after check-ins resume.                                 |
-| `--webhook.<name>.title-template`          | `OVERDUE__WEBHOOK_<NAME>_TITLE_TEMPLATE`          | `[OVERDUE] Event Notification`               | Template for alerting webhook title.                                                 |
-| `--webhook.<name>.resolved-title-template` | `OVERDUE__WEBHOOK_<NAME>_RESOLVED_TITLE_TEMPLATE` | `[RESOLVED] [OVERDUE] Event Notification`    | Template for resolved webhook title.                                                 |
-| `--webhook.<name>.text-template`           | `OVERDUE__WEBHOOK_<NAME>_TEXT_TEMPLATE`           | `Check-in "{{ .CheckInName }}" is overdue:`  | Template for alerting webhook text.                                                  |
-| `--webhook.<name>.resolved-text-template`  | `OVERDUE__WEBHOOK_<NAME>_RESOLVED_TEXT_TEMPLATE`  | `Check-in "{{ .CheckInName }}" is resolved:` | Template for resolved webhook text.                                                  |
-| `--webhook.<name>.headers`                 | `OVERDUE__WEBHOOK_<NAME>_HEADERS`                 | empty                                        | HTTP header in `KEY=VALUE` format. Can be repeated.                                  |
-| `--webhook.<name>.custom-data`             | `OVERDUE__WEBHOOK_<NAME>_CUSTOM_DATA`             | empty                                        | Template data in `KEY=VALUE` format, available under `.CustomData`. Can be repeated. |
-| `--webhook.<name>.template`                | `OVERDUE__WEBHOOK_<NAME>_TEMPLATE`                | required                                     | Path or `builtin:<name>` template for the webhook JSON body.                         |
-| `--webhook.<name>.log-response`            | `OVERDUE__WEBHOOK_<NAME>_LOG_RESPONSE`            | `summary`                                    | Successful response logging mode: `summary`, `body`, `full`, or `none`.              |
-| `--webhook.<name>.response-body-limit`     | `OVERDUE__WEBHOOK_<NAME>_RESPONSE_BODY_LIMIT`     | `4096`                                       | Maximum response body bytes to read for logs and errors.                             |
+| Flag                                      | Environment variable pattern                     | Default                                      | Description                                                                          |
+| ----------------------------------------- | ------------------------------------------------ | -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `--webhook.<name>.url`                    | `OVERDUE__WEBHOOK_<NAME>_URL`                    | required                                     | Webhook URL.                                                                         |
+| `--webhook.<name>.method`                 | `OVERDUE__WEBHOOK_<NAME>_METHOD`                 | `POST`                                       | HTTP method: `POST`, `PUT`, `PATCH`, or `DELETE`.                                    |
+| `--webhook.<name>.timeout`                | `OVERDUE__WEBHOOK_<NAME>_TIMEOUT`                | `10s`                                        | HTTP timeout.                                                                        |
+| `--webhook.<name>.skip-insecure`          | `OVERDUE__WEBHOOK_<NAME>_SKIP_INSECURE`          | `false`                                      | Skip TLS certificate verification.                                                   |
+| `--webhook.<name>.send-resolved`          | `OVERDUE__WEBHOOK_<NAME>_SEND_RESOLVED`          | `false`                                      | Send a resolved notification after check-ins resume.                                 |
+| `--webhook.<name>.title-template`         | `OVERDUE__WEBHOOK_<NAME>_TITLE_TEMPLATE`         | status title                                 | Template for notification title.                                                     |
+| `--webhook.<name>.text-template`          | `OVERDUE__WEBHOOK_<NAME>_TEXT_TEMPLATE`          | `Check-in "{{ .CheckInName }}" is overdue:`  | Template for alerting webhook text.                                                  |
+| `--webhook.<name>.resolved-text-template` | `OVERDUE__WEBHOOK_<NAME>_RESOLVED_TEXT_TEMPLATE` | `Check-in "{{ .CheckInName }}" is resolved:` | Template for resolved webhook text.                                                  |
+| `--webhook.<name>.headers`                | `OVERDUE__WEBHOOK_<NAME>_HEADERS`                | empty                                        | HTTP header in `KEY=VALUE` format. Can be repeated.                                  |
+| `--webhook.<name>.custom-data`            | `OVERDUE__WEBHOOK_<NAME>_CUSTOM_DATA`            | empty                                        | Template data in `KEY=VALUE` format, available under `.CustomData`. Can be repeated. |
+| `--webhook.<name>.template`               | `OVERDUE__WEBHOOK_<NAME>_TEMPLATE`               | required                                     | Path or `builtin:<name>` template for the webhook JSON body.                         |
+| `--webhook.<name>.log-response`           | `OVERDUE__WEBHOOK_<NAME>_LOG_RESPONSE`           | `summary`                                    | Successful response logging mode: `summary`, `body`, `full`, or `none`.              |
+| `--webhook.<name>.response-body-limit`    | `OVERDUE__WEBHOOK_<NAME>_RESPONSE_BODY_LIMIT`    | `4096`                                       | Maximum response body bytes to read for logs and errors.                             |
 
 `<NAME>` is the uppercased target name. For example, `ops` becomes `OPS`.
 
@@ -225,25 +224,22 @@ export OVERDUE__EMAIL_PRIMARY_SEND_RESOLVED=true
 
 ### Email flags
 
-| Flag                                       | Environment variable pattern                      | Default                                      | Description                                                                          |
-| ------------------------------------------ | ------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `--email.<name>.smtp-host`                 | `OVERDUE__EMAIL_<NAME>_SMTP_HOST`                 | required                                     | SMTP host.                                                                           |
-| `--email.<name>.smtp-port`                 | `OVERDUE__EMAIL_<NAME>_SMTP_PORT`                 | `587`                                        | SMTP port.                                                                           |
-| `--email.<name>.smtp-user`                 | `OVERDUE__EMAIL_<NAME>_SMTP_USER`                 | required                                     | SMTP username.                                                                       |
-| `--email.<name>.smtp-pass`                 | `OVERDUE__EMAIL_<NAME>_SMTP_PASS`                 | empty                                        | SMTP password.                                                                       |
-| `--email.<name>.smtp-skip-insecure`        | `OVERDUE__EMAIL_<NAME>_SMTP_SKIP_INSECURE`        | `false`                                      | Skip SMTP TLS certificate verification.                                              |
-| `--email.<name>.send-resolved`             | `OVERDUE__EMAIL_<NAME>_SEND_RESOLVED`             | `false`                                      | Send a resolved email after check-ins resume.                                        |
-| `--email.<name>.subject-template`          | `OVERDUE__EMAIL_<NAME>_SUBJECT_TEMPLATE`          | status title                                 | Template for alerting email subject.                                                 |
-| `--email.<name>.resolved-subject-template` | `OVERDUE__EMAIL_<NAME>_RESOLVED_SUBJECT_TEMPLATE` | status title                                 | Template for resolved email subject.                                                 |
-| `--email.<name>.title-template`            | `OVERDUE__EMAIL_<NAME>_TITLE_TEMPLATE`            | `[OVERDUE] Event Notification`               | Template for alerting email body title.                                              |
-| `--email.<name>.resolved-title-template`   | `OVERDUE__EMAIL_<NAME>_RESOLVED_TITLE_TEMPLATE`   | `[RESOLVED] [OVERDUE] Event Notification`    | Template for resolved email body title.                                              |
-| `--email.<name>.text-template`             | `OVERDUE__EMAIL_<NAME>_TEXT_TEMPLATE`             | `Check-in "{{ .CheckInName }}" is overdue:`  | Template for alerting email body text.                                               |
-| `--email.<name>.resolved-text-template`    | `OVERDUE__EMAIL_<NAME>_RESOLVED_TEXT_TEMPLATE`    | `Check-in "{{ .CheckInName }}" is resolved:` | Template for resolved email body text.                                               |
-| `--email.<name>.from`                      | `OVERDUE__EMAIL_<NAME>_FROM`                      | required                                     | Email sender address.                                                                |
-| `--email.<name>.to`                        | `OVERDUE__EMAIL_<NAME>_TO`                        | required                                     | Email recipient address. Can be repeated.                                            |
-| `--email.<name>.headers`                   | `OVERDUE__EMAIL_<NAME>_HEADERS`                   | empty                                        | Email header in `KEY=VALUE` format. Can be repeated.                                 |
-| `--email.<name>.custom-data`               | `OVERDUE__EMAIL_<NAME>_CUSTOM_DATA`               | empty                                        | Template data in `KEY=VALUE` format, available under `.CustomData`. Can be repeated. |
-| `--email.<name>.template`                  | `OVERDUE__EMAIL_<NAME>_TEMPLATE`                  | required                                     | Path or `builtin:<name>` template for the email body.                                |
+| Flag                                    | Environment variable pattern                   | Default                                      | Description                                                                          |
+| --------------------------------------- | ---------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `--email.<name>.smtp-host`              | `OVERDUE__EMAIL_<NAME>_SMTP_HOST`              | required                                     | SMTP host.                                                                           |
+| `--email.<name>.smtp-port`              | `OVERDUE__EMAIL_<NAME>_SMTP_PORT`              | `587`                                        | SMTP port.                                                                           |
+| `--email.<name>.smtp-user`              | `OVERDUE__EMAIL_<NAME>_SMTP_USER`              | required                                     | SMTP username.                                                                       |
+| `--email.<name>.smtp-pass`              | `OVERDUE__EMAIL_<NAME>_SMTP_PASS`              | empty                                        | SMTP password.                                                                       |
+| `--email.<name>.smtp-skip-insecure`     | `OVERDUE__EMAIL_<NAME>_SMTP_SKIP_INSECURE`     | `false`                                      | Skip SMTP TLS certificate verification.                                              |
+| `--email.<name>.send-resolved`          | `OVERDUE__EMAIL_<NAME>_SEND_RESOLVED`          | `false`                                      | Send a resolved email after check-ins resume.                                        |
+| `--email.<name>.title-template`         | `OVERDUE__EMAIL_<NAME>_TITLE_TEMPLATE`         | status title                                 | Template for notification title.                                                     |
+| `--email.<name>.text-template`          | `OVERDUE__EMAIL_<NAME>_TEXT_TEMPLATE`          | `Check-in "{{ .CheckInName }}" is overdue:`  | Template for alerting email body text.                                               |
+| `--email.<name>.resolved-text-template` | `OVERDUE__EMAIL_<NAME>_RESOLVED_TEXT_TEMPLATE` | `Check-in "{{ .CheckInName }}" is resolved:` | Template for resolved email body text.                                               |
+| `--email.<name>.from`                   | `OVERDUE__EMAIL_<NAME>_FROM`                   | required                                     | Email sender address.                                                                |
+| `--email.<name>.to`                     | `OVERDUE__EMAIL_<NAME>_TO`                     | required                                     | Email recipient address. Can be repeated.                                            |
+| `--email.<name>.headers`                | `OVERDUE__EMAIL_<NAME>_HEADERS`                | empty                                        | Email header in `KEY=VALUE` format. Can be repeated.                                 |
+| `--email.<name>.custom-data`            | `OVERDUE__EMAIL_<NAME>_CUSTOM_DATA`            | empty                                        | Template data in `KEY=VALUE` format, available under `.CustomData`. Can be repeated. |
+| `--email.<name>.template`               | `OVERDUE__EMAIL_<NAME>_TEMPLATE`               | required                                     | Path or `builtin:<name>` template for the email body.                                |
 
 Overdue always adds `X-Mailer: overdue/<version>` to email notifications. User-provided `X-Mailer` values are ignored.
 
