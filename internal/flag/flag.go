@@ -26,7 +26,7 @@ func ParseArgs(args []string, version string) (config.Config, error) {
 		return config.Config{}, err
 	}
 	cfg.Notifications = notifications
-	cfg.Overridden = tf.OverriddenValues()
+	cfg.OverriddenValues = tf.OverriddenValues()
 
 	return cfg, nil
 }

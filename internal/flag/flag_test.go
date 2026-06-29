@@ -172,7 +172,7 @@ func TestParseArgs(t *testing.T) {
 		}, "dev")
 
 		require.NoError(t, err)
-		overrides := fmt.Sprint(cfg.Overridden)
+		overrides := fmt.Sprint(cfg.OverriddenValues)
 		assert.NotContains(t, overrides, "0123456789abcdefghijklmnopqrstuvwxyz")
 		assert.NotContains(t, overrides, "https://hooks.example.test/secret")
 		assert.NotContains(t, overrides, "Authorization=Bearer webhook-secret")

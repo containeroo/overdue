@@ -72,7 +72,12 @@ func (r *Router) ReceiverIDsForEvent(event monitor.Event) ([]kit.ReceiverID, boo
 }
 
 // webhookReceiver creates one webhook receiver from config.
-func webhookReceiver(templateFS fs.FS, app config.AppData, cfg config.WebhookConfig, logger *slog.Logger) (*kit.Receiver, error) {
+func webhookReceiver(
+	templateFS fs.FS,
+	app config.AppData,
+	cfg config.WebhookConfig,
+	logger *slog.Logger,
+) (*kit.Receiver, error) {
 	tmpl, err := templates.LoadSource(templateFS, cfg.Template)
 	if err != nil {
 		return nil, fmt.Errorf("load webhook %q template: %w", cfg.Name, err)
@@ -118,7 +123,11 @@ func webhookReceiver(templateFS fs.FS, app config.AppData, cfg config.WebhookCon
 }
 
 // emailReceiver creates one email receiver from config.
-func emailReceiver(templateFS fs.FS, app config.AppData, cfg config.EmailConfig) (*kit.Receiver, error) {
+func emailReceiver(
+	templateFS fs.FS,
+	app config.AppData,
+	cfg config.EmailConfig,
+) (*kit.Receiver, error) {
 	tmpl, err := templates.LoadSource(templateFS, cfg.Template)
 	if err != nil {
 		return nil, fmt.Errorf("load email %q template: %w", cfg.Name, err)
@@ -191,7 +200,11 @@ func webhookLogResponse(value config.WebhookLogResponse) webhook.LogResponse {
 }
 
 // validateWebhookTarget renders sample alerting and resolved webhook payloads.
-func validateWebhookTarget(target *webhook.Target, receiverName string, vars map[string]any) error {
+func validateWebhookTarget(
+	target *webhook.Target,
+	receiverName string,
+	vars map[string]any,
+) error {
 	alertingEvent, resolvedEvent := validationEvents("default")
 
 	if err := target.Validate(kit.Payload{

@@ -16,16 +16,16 @@ const (
 
 // Config contains the fully normalized runtime configuration.
 type Config struct {
-	ListenAddr      *net.TCPAddr
-	RoutePrefix     string
-	SiteRoot        string
-	ResponseDetails bool
-	AuthToken       string
-	Debug           bool
-	LogFormat       logging.LogFormat
-	CheckIn         CheckInConfig
-	Notifications   Notifications
-	Overridden      map[string]any
+	ListenAddr       *net.TCPAddr
+	RoutePrefix      string
+	SiteRoot         string
+	ResponseDetails  bool
+	AuthToken        string
+	Debug            bool
+	LogFormat        logging.LogFormat
+	CheckIn          CheckInConfig
+	Notifications    Notifications
+	OverriddenValues map[string]any
 }
 
 // CheckInConfig contains the check-in schedule and endpoint configuration.
