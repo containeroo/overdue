@@ -29,7 +29,7 @@ func Run(
 	stdOut, stdErr io.Writer,
 	templateFS fs.FS,
 ) error {
-	flags, err := cli.ParseArgs(args, version)
+	cfg, err := cli.ParseArgs(args, version)
 	if err != nil {
 		if tinyflags.IsHelpRequested(err) || tinyflags.IsVersionRequested(err) {
 			_, _ = fmt.Fprint(stdOut, err)
@@ -39,36 +39,36 @@ func Run(
 		return err
 	}
 
-	logger := logging.SetupLogger(flags.Debug, flags.LogFormat, stdOut)
+	logger := logging.SetupLogger(cfg.Debug, cfg.LogFormat, stdOut)
 	setupLog := logger.With("component", "setup")
 	setupLog.Info("starting overdue", "version", version, "commit", commit)
 
 	setupLog.Info(
 		"check-in receiver configured",
-		"listenAddr", flags.ListenAddr.String(),
-		"routePrefix", flags.RoutePrefix,
-		"siteRoot", flags.SiteRoot,
-		"name", flags.CheckIn.Name,
-		"path", flags.CheckIn.Path,
-		"expectedEvery", flags.CheckIn.ExpectedEvery.String(),
-		"alertingDelay", flags.CheckIn.AlertingDelay.String(),
-		"startActive", flags.CheckIn.StartActive,
-		"allowGETCheckIn", flags.CheckIn.AllowGET,
-		"responseDetails", flags.ResponseDetails,
+		"listenAddr", cfg.ListenAddr.String(),
+		"routePrefix", cfg.RoutePrefix,
+		"siteRoot", cfg.SiteRoot,
+		"name", cfg.CheckIn.Name,
+		"path", cfg.CheckIn.Path,
+		"expectedEvery", cfg.CheckIn.ExpectedEvery.String(),
+		"alertingDelay", cfg.CheckIn.AlertingDelay.String(),
+		"startActive", cfg.CheckIn.StartActive,
+		"allowGETCheckIn", cfg.CheckIn.AllowGET,
+		"responseDetails", cfg.ResponseDetails,
 		"initialPhase", monitor.PhaseScheduled,
-		"notifications", len(flags.Notifications.Webhooks)+len(flags.Notifications.Emails),
+		"notifications", len(cfg.Notifications.Webhooks)+len(cfg.Notifications.Emails),
 	)
 
-	if len(flags.OverriddenValues) > 0 {
+	if len(cfg.OverriddenValues) > 0 {
 		logger.Info(
 			"cli overrides",
-			"overrides", flags.OverriddenValues,
+			"overrides", cfg.OverriddenValues,
 		)
 	}
 
 	receivers, notificationRouter, err := notify.ReceiversFromConfig(
 		templateFS,
-		flags.Notifications,
+		cfg.Notifications,
 		logger.With("component", "notify"),
 	)
 	if err != nil {
@@ -91,45 +91,45 @@ func Run(
 	}
 
 	mon := monitor.New(
-		flags.CheckIn.Name,
-		flags.CheckIn.ExpectedEvery,
-		flags.CheckIn.AlertingDelay,
+		cfg.CheckIn.Name,
+		cfg.CheckIn.ExpectedEvery,
+		cfg.CheckIn.AlertingDelay,
 		logger.With("component", "monitor"),
 	)
 
 	reg := metrics.NewRegistry()
 	sched := scheduler.New(mon, notifyManager, notificationRouter, reg, logger.With("component", "scheduler"))
-	if flags.CheckIn.StartActive {
+	if cfg.CheckIn.StartActive {
 		activatedAt := time.Now()
 		sched.RecordCheckInContext(ctx, activatedAt)
 		setupLog.Info(
 			"check-in monitor activated at startup",
 			"activatedAt", activatedAt,
-			"expectedBy", activatedAt.Add(flags.CheckIn.ExpectedEvery),
-			"alertingAt", activatedAt.Add(flags.CheckIn.ExpectedEvery+flags.CheckIn.AlertingDelay),
+			"expectedBy", activatedAt.Add(cfg.CheckIn.ExpectedEvery),
+			"alertingAt", activatedAt.Add(cfg.CheckIn.ExpectedEvery+cfg.CheckIn.AlertingDelay),
 		)
 	}
 	sched.Run(ctx)
 
 	svc := service.NewCheckIn(sched, reg)
 	api := handler.NewAPI(
-		flags.AuthToken,
+		cfg.AuthToken,
 		svc,
 		reg,
-		flags.ResponseDetails,
+		cfg.ResponseDetails,
 		version,
 		commit,
 		logger.With("component", "api"),
 	)
 
-	router := routes.NewRouter(flags.CheckIn.Path, flags.RoutePrefix, flags.CheckIn.AllowGET, api)
+	router := routes.NewRouter(cfg.CheckIn.Path, cfg.RoutePrefix, cfg.CheckIn.AllowGET, api)
 	if err := server.Run(
 		ctx,
-		flags.ListenAddr.String(),
+		cfg.ListenAddr.String(),
 		router,
 		logger.With("component", "server"),
 	); err != nil {
-		setupLog.Error("server run", "listenAddr", flags.ListenAddr.String(), "error", err)
+		setupLog.Error("server run", "listenAddr", cfg.ListenAddr.String(), "error", err)
 		return err
 	}
 
