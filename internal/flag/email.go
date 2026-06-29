@@ -13,8 +13,9 @@ func registerEmailFlags(tf *tinyflags.FlagSet) {
 		Required().
 		Placeholder("HOST")
 
-	emailGroup.Int("smtp-port", 587, "SMTP port").
+	emailGroup.Int("smtp-port", 0, "SMTP port").
 		Validate(intAtLeast(1)).
+		HideDefault().
 		Placeholder("PORT")
 
 	emailGroup.String("smtp-user", "", "SMTP username")

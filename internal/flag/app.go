@@ -44,13 +44,17 @@ func registerAppFlags(tf *tinyflags.FlagSet, cfg *config.Config) {
 		Value()
 
 	tf.DurationVar(&cfg.CheckIn.ExpectedEvery, "expected-every", 0, "Maximum time between check-ins").
-		Validate(durationGreaterThanZero()).
+		Placeholder("DURATION").
 		Required().
+		HideDefault().
+		Validate(durationGreaterThanZero()).
 		Value()
 
 	tf.DurationVar(&cfg.CheckIn.AlertingDelay, "alerting-delay", 0, "Extra time after the expected deadline before alerting").
-		Validate(durationGreaterThanZero()).
+		Placeholder("DURATION").
 		Required().
+		HideDefault().
+		Validate(durationGreaterThanZero()).
 		Value()
 
 	tf.BoolVar(&cfg.CheckIn.StartActive, "start-active", false, "Activate the check-in monitor at startup instead of waiting for the first check-in").Value()
