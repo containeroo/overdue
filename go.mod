@@ -6,7 +6,7 @@ require (
 	github.com/containeroo/httpgrace v0.1.2
 	github.com/containeroo/httpprefix v0.0.2
 	github.com/containeroo/httputils v0.0.1
-	github.com/containeroo/notifykit v0.0.6
+	github.com/containeroo/notifykit v0.0.7
 	github.com/containeroo/tinyflags v0.0.79
 	github.com/containeroo/uuidv7 v0.0.2
 	github.com/prometheus/client_golang v1.23.2

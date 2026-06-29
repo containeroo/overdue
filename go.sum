@@ -8,8 +8,8 @@ github.com/containeroo/httpprefix v0.0.2 h1:OvnhriCPVEoF1+12TXrou89smFcWqEsKTuZM
 github.com/containeroo/httpprefix v0.0.2/go.mod h1:RUVtNKpy2OZ24ijpBsR3XijBASISwBm22da9j41Y3m8=
 github.com/containeroo/httputils v0.0.1 h1:W9SbW6nbmnGgaEOXRH5nY9ZwLarBo3+FLUCx6EtS2mc=
 github.com/containeroo/httputils v0.0.1/go.mod h1:TrmDptapH6SBe6CeHFWY2kxy63O/9ZWBWrLKpc2SFjI=
-github.com/containeroo/notifykit v0.0.6 h1:IGi4kEA0xlPoWh3ELm7jCYGOfAMEoLep0P2Tkr0QRqE=
-github.com/containeroo/notifykit v0.0.6/go.mod h1:jNdY0ufZf+DhNK3qA/ZSJfd+/dfrSpD/spbUzYlANPk=
+github.com/containeroo/notifykit v0.0.7 h1:AfBOKPAMLFgJDDYAk0z1vyLPWXwpB0RnScmmL80+bwE=
+github.com/containeroo/notifykit v0.0.7/go.mod h1:jNdY0ufZf+DhNK3qA/ZSJfd+/dfrSpD/spbUzYlANPk=
 github.com/containeroo/tinyflags v0.0.79 h1:2cNIoTlwgZFYcy6el2ZEBgWiiLAWHlLRkduT+8I2+Zo=
 github.com/containeroo/tinyflags v0.0.79/go.mod h1:5CGkQy0A+90ubNaEDJanfXOlE4+aYHp4OBwCpXM1yDM=
 github.com/containeroo/tmplfuncs v0.0.2 h1:Gzls/3c+Bcyc76PuPOKOVgG9boKM9/5todkIqlO597Q=
