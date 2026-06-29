@@ -33,7 +33,7 @@ func TestReceiversFromConfig(t *testing.T) {
 					Method:            http.MethodPost,
 					Timeout:           time.Second,
 					SendResolved:      true,
-					SubjectTemplate:   "",
+					SubjectTemplate:   `{{ if .Resolved }}[RESOLVED] Event Notification{{ else }}[OVERDUE] Event Notification{{ end }}`,
 					Template:          templatePaths.webhook,
 					ResponseBodyLimit: 128,
 				},
@@ -46,7 +46,7 @@ func TestReceiversFromConfig(t *testing.T) {
 					SendResolved:    true,
 					From:            "overdue@example.test",
 					To:              []string{"ops@example.test"},
-					SubjectTemplate: "",
+					SubjectTemplate: `{{ if .Resolved }}[RESOLVED] Event Notification{{ else }}[OVERDUE] Event Notification{{ end }}`,
 					Template:        templatePaths.email,
 				},
 			},
@@ -126,22 +126,6 @@ func TestEmailReceiverID(t *testing.T) {
 	assert.Equal(t, kit.ReceiverID("email.ops"), emailReceiverID("ops"))
 }
 
-func TestSubjectTemplate(t *testing.T) {
-	t.Parallel()
-
-	t.Run("uses renderer default for empty value", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, defaultSubjectTemplate, subjectTemplate(""))
-	})
-
-	t.Run("keeps configured value", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, "custom", subjectTemplate("custom"))
-	})
-}
-
 func TestWebhookLogResponse(t *testing.T) {
 	t.Parallel()
 
@@ -154,10 +138,10 @@ func TestWebhookLogResponse(t *testing.T) {
 		assert.Equal(t, webhook.LogResponseNone, webhookLogResponse(config.WebhookLogResponseNone))
 	})
 
-	t.Run("defaults empty value to summary", func(t *testing.T) {
+	t.Run("passes through empty values", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, webhook.LogResponseSummary, webhookLogResponse(""))
+		assert.Equal(t, webhook.LogResponse(""), webhookLogResponse(""))
 	})
 }
 

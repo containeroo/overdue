@@ -95,38 +95,38 @@ If no notification targets are configured, Overdue still runs and records status
 
 ### Webhook flags
 
-| Flag pattern                           | Environment variable pattern                  | Default   | Description                                                     |
-| -------------------------------------- | --------------------------------------------- | --------- | --------------------------------------------------------------- |
-| `--webhook.<name>.url`                 | `OVERDUE__WEBHOOK_<NAME>_URL`                 | required  | Webhook URL.                                                    |
-| `--webhook.<name>.method`              | `OVERDUE__WEBHOOK_<NAME>_METHOD`              | `POST`    | HTTP method: `POST`, `PUT`, `PATCH`, or `DELETE`.               |
-| `--webhook.<name>.timeout`             | `OVERDUE__WEBHOOK_<NAME>_TIMEOUT`             | `10s`     | HTTP request timeout.                                           |
-| `--webhook.<name>.tls-skip-verify`     | `OVERDUE__WEBHOOK_<NAME>_TLS_SKIP_VERIFY`     | `false`   | Skip TLS certificate verification.                              |
-| `--webhook.<name>.send-resolved`       | `OVERDUE__WEBHOOK_<NAME>_SEND_RESOLVED`       | `false`   | Send resolved notifications to this receiver.                   |
-| `--webhook.<name>.subject-template`    | `OVERDUE__WEBHOOK_<NAME>_SUBJECT_TEMPLATE`    | empty     | Optional subject/title template.                                |
-| `--webhook.<name>.headers`             | `OVERDUE__WEBHOOK_<NAME>_HEADERS`             | empty     | HTTP headers in `KEY=VALUE` format.                             |
-| `--webhook.<name>.custom-data`         | `OVERDUE__WEBHOOK_<NAME>_CUSTOM_DATA`         | empty     | Custom template data in `KEY=VALUE` format.                     |
-| `--webhook.<name>.template`            | `OVERDUE__WEBHOOK_<NAME>_TEMPLATE`            | required  | Body template path or `builtin:<name>`.                         |
-| `--webhook.<name>.log-response`        | `OVERDUE__WEBHOOK_<NAME>_LOG_RESPONSE`        | `summary` | Webhook response logging: `summary`, `body`, `full`, or `none`. |
-| `--webhook.<name>.response-body-limit` | `OVERDUE__WEBHOOK_<NAME>_RESPONSE_BODY_LIMIT` | `4096`    | Maximum response body bytes to read for logs and errors.        |
+| Flag pattern                           | Environment variable pattern                  | Default      | Description                                                     |
+| -------------------------------------- | --------------------------------------------- | ------------ | --------------------------------------------------------------- |
+| `--webhook.<name>.url`                 | `OVERDUE__WEBHOOK_<NAME>_URL`                 | required     | Webhook URL.                                                    |
+| `--webhook.<name>.method`              | `OVERDUE__WEBHOOK_<NAME>_METHOD`              | `POST`       | HTTP method: `POST`, `PUT`, `PATCH`, or `DELETE`.               |
+| `--webhook.<name>.timeout`             | `OVERDUE__WEBHOOK_<NAME>_TIMEOUT`             | `10s`        | HTTP request timeout.                                           |
+| `--webhook.<name>.tls-skip-verify`     | `OVERDUE__WEBHOOK_<NAME>_TLS_SKIP_VERIFY`     | `false`      | Skip TLS certificate verification.                              |
+| `--webhook.<name>.send-resolved`       | `OVERDUE__WEBHOOK_<NAME>_SEND_RESOLVED`       | `false`      | Send resolved notifications to this receiver.                   |
+| `--webhook.<name>.subject-template`    | `OVERDUE__WEBHOOK_<NAME>_SUBJECT_TEMPLATE`    | status title | Optional subject/title template.                                |
+| `--webhook.<name>.headers`             | `OVERDUE__WEBHOOK_<NAME>_HEADERS`             | empty        | HTTP headers in `KEY=VALUE` format.                             |
+| `--webhook.<name>.custom-data`         | `OVERDUE__WEBHOOK_<NAME>_CUSTOM_DATA`         | empty        | Custom template data in `KEY=VALUE` format.                     |
+| `--webhook.<name>.template`            | `OVERDUE__WEBHOOK_<NAME>_TEMPLATE`            | required     | Body template path or `builtin:<name>`.                         |
+| `--webhook.<name>.log-response`        | `OVERDUE__WEBHOOK_<NAME>_LOG_RESPONSE`        | `summary`    | Webhook response logging: `summary`, `body`, `full`, or `none`. |
+| `--webhook.<name>.response-body-limit` | `OVERDUE__WEBHOOK_<NAME>_RESPONSE_BODY_LIMIT` | `4096`       | Maximum response body bytes to read for logs and errors.        |
 
 `--webhook.<name>.skip-insecure` remains available as a deprecated alias for `--webhook.<name>.tls-skip-verify`.
 
 ### Email flags
 
-| Flag pattern                          | Environment variable pattern                 | Default  | Description                                   |
-| ------------------------------------- | -------------------------------------------- | -------- | --------------------------------------------- |
-| `--email.<name>.smtp-host`            | `OVERDUE__EMAIL_<NAME>_SMTP_HOST`            | required | SMTP host.                                    |
-| `--email.<name>.smtp-port`            | `OVERDUE__EMAIL_<NAME>_SMTP_PORT`            | `587`    | SMTP port.                                    |
-| `--email.<name>.smtp-user`            | `OVERDUE__EMAIL_<NAME>_SMTP_USER`            | empty    | SMTP username.                                |
-| `--email.<name>.smtp-pass`            | `OVERDUE__EMAIL_<NAME>_SMTP_PASS`            | empty    | SMTP password.                                |
-| `--email.<name>.smtp-tls-skip-verify` | `OVERDUE__EMAIL_<NAME>_SMTP_TLS_SKIP_VERIFY` | `false`  | Skip SMTP TLS certificate verification.       |
-| `--email.<name>.send-resolved`        | `OVERDUE__EMAIL_<NAME>_SEND_RESOLVED`        | `false`  | Send resolved notifications to this receiver. |
-| `--email.<name>.subject-template`     | `OVERDUE__EMAIL_<NAME>_SUBJECT_TEMPLATE`     | empty    | Optional email subject template.              |
-| `--email.<name>.from`                 | `OVERDUE__EMAIL_<NAME>_FROM`                 | required | Sender address.                               |
-| `--email.<name>.to`                   | `OVERDUE__EMAIL_<NAME>_TO`                   | required | Recipient address. May be repeated.           |
-| `--email.<name>.headers`              | `OVERDUE__EMAIL_<NAME>_HEADERS`              | empty    | Email headers in `KEY=VALUE` format.          |
-| `--email.<name>.custom-data`          | `OVERDUE__EMAIL_<NAME>_CUSTOM_DATA`          | empty    | Custom template data in `KEY=VALUE` format.   |
-| `--email.<name>.template`             | `OVERDUE__EMAIL_<NAME>_TEMPLATE`             | required | Body template path or `builtin:<name>`.       |
+| Flag pattern                          | Environment variable pattern                 | Default      | Description                                   |
+| ------------------------------------- | -------------------------------------------- | ------------ | --------------------------------------------- |
+| `--email.<name>.smtp-host`            | `OVERDUE__EMAIL_<NAME>_SMTP_HOST`            | required     | SMTP host.                                    |
+| `--email.<name>.smtp-port`            | `OVERDUE__EMAIL_<NAME>_SMTP_PORT`            | `587`        | SMTP port.                                    |
+| `--email.<name>.smtp-user`            | `OVERDUE__EMAIL_<NAME>_SMTP_USER`            | empty        | SMTP username.                                |
+| `--email.<name>.smtp-pass`            | `OVERDUE__EMAIL_<NAME>_SMTP_PASS`            | empty        | SMTP password.                                |
+| `--email.<name>.smtp-tls-skip-verify` | `OVERDUE__EMAIL_<NAME>_SMTP_TLS_SKIP_VERIFY` | `false`      | Skip SMTP TLS certificate verification.       |
+| `--email.<name>.send-resolved`        | `OVERDUE__EMAIL_<NAME>_SEND_RESOLVED`        | `false`      | Send resolved notifications to this receiver. |
+| `--email.<name>.subject-template`     | `OVERDUE__EMAIL_<NAME>_SUBJECT_TEMPLATE`     | status title | Optional email subject template.              |
+| `--email.<name>.from`                 | `OVERDUE__EMAIL_<NAME>_FROM`                 | required     | Sender address.                               |
+| `--email.<name>.to`                   | `OVERDUE__EMAIL_<NAME>_TO`                   | required     | Recipient address. May be repeated.           |
+| `--email.<name>.headers`              | `OVERDUE__EMAIL_<NAME>_HEADERS`              | empty        | Email headers in `KEY=VALUE` format.          |
+| `--email.<name>.custom-data`          | `OVERDUE__EMAIL_<NAME>_CUSTOM_DATA`          | empty        | Custom template data in `KEY=VALUE` format.   |
+| `--email.<name>.template`             | `OVERDUE__EMAIL_<NAME>_TEMPLATE`             | required     | Body template path or `builtin:<name>`.       |
 
 `--email.<name>.smtp-skip-insecure` remains available as a deprecated alias for `--email.<name>.smtp-tls-skip-verify`.
 
@@ -216,29 +216,29 @@ Templates use strict missing-key behavior. Missing fields fail during startup va
 
 Templates receive the following data:
 
-| Field             | Type                | Description                                                                    |
-| ----------------- | ------------------- | ------------------------------------------------------------------------------ |
-| `.IncidentID`     | `string`            | Stable ID for one overdue incident.                                            |
-| `.NotificationID` | `string`            | Stable ID for this concrete notification.                                      |
-| `.CheckInName`    | `string`            | Configured check-in name.                                                      |
-| `.LastCheckIn`    | `time.Time`         | Last received check-in time.                                                   |
-| `.ExpectedBy`     | `time.Time`         | Time when the next check-in was expected.                                      |
-| `.OverdueSince`   | `time.Time`         | Time when the check-in became overdue.                                         |
-| `.AlertingAt`     | `time.Time`         | Time when alerting starts.                                                     |
-| `.Now`            | `time.Time`         | Time the notification event was created.                                       |
-| `.Phase`          | `string`            | Monitor phase.                                                                 |
-| `.Status`         | `string`            | Notification status: `alerting` or `resolved`.                                 |
-| `.Resolved`       | `bool`              | Whether this is a resolved notification.                                       |
-| `.Subject`        | `string`            | Rendered subject.                                                              |
-| `.Title`          | `string`            | Title for the notification. Currently the rendered subject or a default title. |
-| `.Text`           | `string`            | Default plain text summary.                                                    |
-| `.Receiver`       | `string`            | Receiver name.                                                                 |
-| `.Vars`           | `map[string]any`    | Public receiver variables. Custom data is also exposed here.                   |
-| `.CustomData`     | `map[string]string` | Custom data configured with `custom-data`.                                     |
-| `.App.Version`    | `string`            | Overdue version.                                                               |
-| `.App.SiteRoot`   | `string`            | Public base URL from `--public-url`.                                           |
-| `.App.CheckInURL` | `string`            | Public check-in URL when `--public-url` is configured.                         |
-| `.App.StatusURL`  | `string`            | Public status URL when `--public-url` is configured.                           |
+| Field             | Type                | Description                                                  |
+| ----------------- | ------------------- | ------------------------------------------------------------ |
+| `.IncidentID`     | `string`            | Stable ID for one overdue incident.                          |
+| `.NotificationID` | `string`            | Stable ID for this concrete notification.                    |
+| `.CheckInName`    | `string`            | Configured check-in name.                                    |
+| `.LastCheckIn`    | `time.Time`         | Last received check-in time.                                 |
+| `.ExpectedBy`     | `time.Time`         | Time when the next check-in was expected.                    |
+| `.OverdueSince`   | `time.Time`         | Time when the check-in became overdue.                       |
+| `.AlertingAt`     | `time.Time`         | Time when alerting starts.                                   |
+| `.Now`            | `time.Time`         | Time the notification event was created.                     |
+| `.Phase`          | `string`            | Monitor phase.                                               |
+| `.Status`         | `string`            | Notification status: `alerting` or `resolved`.               |
+| `.Resolved`       | `bool`              | Whether this is a resolved notification.                     |
+| `.Subject`        | `string`            | Rendered subject.                                            |
+| `.Title`          | `string`            | Title for the notification. Currently the rendered subject.  |
+| `.Text`           | `string`            | Default plain text summary.                                  |
+| `.Receiver`       | `string`            | Receiver name.                                               |
+| `.Vars`           | `map[string]any`    | Public receiver variables. Custom data is also exposed here. |
+| `.CustomData`     | `map[string]string` | Custom data configured with `custom-data`.                   |
+| `.App.Version`    | `string`            | Overdue version.                                             |
+| `.App.SiteRoot`   | `string`            | Public base URL from `--public-url`.                         |
+| `.App.CheckInURL` | `string`            | Public check-in URL when `--public-url` is configured.       |
+| `.App.StatusURL`  | `string`            | Public status URL when `--public-url` is configured.         |
 
 ### Custom data
 
@@ -265,7 +265,7 @@ Example with a default:
 
 ## Subject templates
 
-Subject templates are optional. When no subject template is configured, Overdue uses the renderer-provided event title, and built-in body templates render their title from the event data.
+Subject templates are optional. When no subject template is configured, the flag default renders `[OVERDUE] Event Notification` or `[RESOLVED] Event Notification`. Built-in body templates render their title from the event data.
 
 Override the subject per receiver when you need a custom Slack title or email subject:
 

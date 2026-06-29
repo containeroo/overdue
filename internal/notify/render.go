@@ -53,7 +53,7 @@ func NewData(event monitor.Event, receiver string, vars map[string]any, subject 
 		Phase:          event.Phase,
 		Status:         event.Status,
 		Resolved:       event.Resolved,
-		Title:          title(subject, event),
+		Title:          subject,
 		Text:           text(event),
 		Subject:        subject,
 		App:            appData(vars),
@@ -61,17 +61,6 @@ func NewData(event monitor.Event, receiver string, vars map[string]any, subject 
 		Vars:           publicVars(vars),
 		CustomData:     customData(vars),
 	}
-}
-
-// title returns the rendered subject or a default event title.
-func title(subject string, event monitor.Event) string {
-	if subject != "" {
-		return subject
-	}
-	if event.Resolved || event.Status == monitor.StatusResolved {
-		return "[RESOLVED] Event Notification"
-	}
-	return "[OVERDUE] Event Notification"
 }
 
 // text returns the default plain text event summary.

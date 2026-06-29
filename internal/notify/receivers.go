@@ -16,8 +16,6 @@ import (
 	"github.com/containeroo/notifykit/templates"
 )
 
-const defaultSubjectTemplate = `{{ .Title }}`
-
 // ReceiversFromConfig builds notifykit receivers and routing policy from Overdue notification config.
 func ReceiversFromConfig(templateFS fs.FS, cfg config.Notifications, logger *slog.Logger) (kit.Receivers, *Router, error) {
 	receivers := make(kit.Receivers, len(cfg.Webhooks)+len(cfg.Emails))
@@ -83,7 +81,7 @@ func webhookReceiver(
 		return nil, fmt.Errorf("load webhook %q template: %w", cfg.Name, err)
 	}
 
-	subjectTmpl, err := templates.ParseStringTemplate("webhook-subject", subjectTemplate(cfg.SubjectTemplate))
+	subjectTmpl, err := templates.ParseStringTemplate("webhook-subject", cfg.SubjectTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("parse webhook %q subject template: %w", cfg.Name, err)
 	}
@@ -133,7 +131,7 @@ func emailReceiver(
 		return nil, fmt.Errorf("load email %q template: %w", cfg.Name, err)
 	}
 
-	subjectTmpl, err := templates.ParseStringTemplate("email-subject", subjectTemplate(cfg.SubjectTemplate))
+	subjectTmpl, err := templates.ParseStringTemplate("email-subject", cfg.SubjectTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("parse email %q subject template: %w", cfg.Name, err)
 	}
@@ -175,14 +173,6 @@ func emailReceiverID(name string) kit.ReceiverID {
 	return kit.ReceiverID("email." + name)
 }
 
-// subjectTemplate returns the configured subject template or a renderer-owned default.
-func subjectTemplate(value string) string {
-	if value == "" {
-		return defaultSubjectTemplate
-	}
-	return value
-}
-
 // webhookLogResponse converts normalized config into the notifykit webhook type.
 func webhookLogResponse(value config.WebhookLogResponse) webhook.LogResponse {
 	switch value {
@@ -192,7 +182,7 @@ func webhookLogResponse(value config.WebhookLogResponse) webhook.LogResponse {
 		return webhook.LogResponseFull
 	case config.WebhookLogResponseNone:
 		return webhook.LogResponseNone
-	case config.WebhookLogResponseSummary, "":
+	case config.WebhookLogResponseSummary:
 		return webhook.LogResponseSummary
 	default:
 		return webhook.LogResponse(value)

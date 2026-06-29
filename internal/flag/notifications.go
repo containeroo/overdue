@@ -11,6 +11,8 @@ import (
 	"github.com/containeroo/tinyflags"
 )
 
+const defaultSubjectTemplate = `{{ if .Resolved }}[RESOLVED] Event Notification{{ else }}[OVERDUE] Event Notification{{ end }}`
+
 // notificationsFromDynamicGroups converts parsed dynamic CLI groups into notification configuration.
 func notificationsFromDynamicGroups(version, siteRoot, checkInPath string, groups []*tinyflags.DynamicGroup) (config.Notifications, error) {
 	cfg := config.Notifications{

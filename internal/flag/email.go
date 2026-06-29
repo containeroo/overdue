@@ -26,7 +26,7 @@ func registerEmailFlags(tf *tinyflags.FlagSet) {
 	emailGroup.Bool("smtp-tls-skip-verify", false, "Skip SMTP TLS certificate verification")
 	emailGroup.Bool("send-resolved", false, "Send a resolved email notification when check-ins resume after alerting")
 
-	emailGroup.String("subject-template", "", "Optional template for email subject")
+	emailGroup.String("subject-template", defaultSubjectTemplate, "Optional template for email subject")
 
 	emailGroup.String("from", "", "Email sender address").
 		Required().

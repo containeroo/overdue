@@ -37,29 +37,6 @@ func TestNewData(t *testing.T) {
 	})
 }
 
-// TestTitle tests default event titles.
-func TestTitle(t *testing.T) {
-	t.Parallel()
-
-	t.Run("uses subject", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, "subject", title("subject", monitor.Event{}))
-	})
-
-	t.Run("uses resolved default", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, "[RESOLVED] Event Notification", title("", monitor.Event{Resolved: true}))
-	})
-
-	t.Run("uses overdue default", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, "[OVERDUE] Event Notification", title("", monitor.Event{}))
-	})
-}
-
 // TestText tests default event summaries.
 func TestText(t *testing.T) {
 	t.Parallel()
