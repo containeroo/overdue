@@ -152,12 +152,14 @@ func (s *Scheduler) run(ctx context.Context) {
 func (s *Scheduler) enqueue(ctx context.Context, monitorEvent monitor.Event) {
 	receiverIDs, ok := s.router.ReceiverIDsForEvent(monitorEvent)
 	if !ok {
-		s.incNotificationSkipped(monitorEvent, "no_resolved_receivers")
+		reason := "no_resolved_receivers"
+		s.incNotificationSkipped(monitorEvent, reason)
 		s.logger.Info(
 			"notification skipped",
 			"incidentID", monitorEvent.IncidentID,
 			"notificationID", monitorEvent.NotificationID,
 			"status", monitorEvent.Status,
+			"reason", reason,
 		)
 		return
 	}
@@ -175,12 +177,14 @@ func (s *Scheduler) enqueue(ctx context.Context, monitorEvent monitor.Event) {
 		return
 	}
 	if id == "" {
-		s.incNotificationSkipped(monitorEvent, "empty_queue_id")
+		reason := "empty_queue_id"
+		s.incNotificationSkipped(monitorEvent, reason)
 		s.logger.Info(
 			"notification skipped",
 			"incidentID", monitorEvent.IncidentID,
 			"notificationID", monitorEvent.NotificationID,
 			"status", monitorEvent.Status,
+			"reason", reason,
 		)
 		return
 	}
