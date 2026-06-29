@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"crypto/sha256"
 	"crypto/subtle"
 	"net/http"
 	"strings"
@@ -13,7 +14,9 @@ func (a *API) authorized(r *http.Request) bool {
 	}
 
 	token := bearerToken(r.Header.Get("Authorization"))
-	return subtle.ConstantTimeCompare([]byte(token), []byte(a.authToken)) == 1
+	tokenSum := sha256.Sum256([]byte(token))
+	authSum := sha256.Sum256([]byte(a.authToken))
+	return subtle.ConstantTimeCompare(tokenSum[:], authSum[:]) == 1
 }
 
 // bearerToken extracts a bearer token from an Authorization header.

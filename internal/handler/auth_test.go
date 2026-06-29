@@ -35,6 +35,16 @@ func TestAPI_authorized(t *testing.T) {
 
 		assert.False(t, api.authorized(httptest.NewRequest(http.MethodGet, "/", nil)))
 	})
+
+	t.Run("rejects same-prefix bearer token", func(t *testing.T) {
+		t.Parallel()
+
+		api, _ := testAPI("secret", testLogger())
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer secret-extra")
+
+		assert.False(t, api.authorized(req))
+	})
 }
 
 func TestBearerToken(t *testing.T) {
