@@ -36,20 +36,20 @@ Dynamic notification flags include the target name:
 
 ## Core flags
 
-| Flag                 | Environment variable        | Default     | Description                                                                |
-| -------------------- | --------------------------- | ----------- | -------------------------------------------------------------------------- |
-| `--listen-address`   | `OVERDUE__LISTEN_ADDRESS`   | `:8080`     | HTTP server listen address.                                                |
-| `--route-prefix`     | `OVERDUE__ROUTE_PREFIX`     | empty       | Path prefix to mount the service under.                                    |
-| `--public-url`       | `OVERDUE__PUBLIC_URL`       | empty       | Externally reachable base URL used in notification templates.              |
-| `--name`             | `OVERDUE__NAME`           | `default`   | Name of the check-in monitor used in notifications.                        |
-| `--path`             | `OVERDUE__PATH`           | `/checkin`  | Route used to receive check-ins.                                           |
-| `--expected-every`   | `OVERDUE__EXPECTED_EVERY`   | required    | Maximum time between check-ins.                                            |
-| `--alerting-delay`   | `OVERDUE__ALERTING_DELAY`   | required    | Extra time after the expected deadline before notifications fire.          |
-| `--start-active`     | `OVERDUE__START_ACTIVE`     | `false`     | Activate the monitor at startup instead of waiting for the first check-in. |
-| `--response-details` | `OVERDUE__RESPONSE_DETAILS` | `false`     | Return detailed timing fields from check-in responses by default.          |
-| `--auth-token`       | `OVERDUE__AUTH_TOKEN`       | empty       | Optional bearer token required for check-in and status requests.           |
-| `--debug`            | `OVERDUE__DEBUG`            | `false`     | Enable debug logging.                                                      |
-| `--log-format`       | `OVERDUE__LOG_FORMAT`       | `json`      | Log format: `json` or `text`.                                              |
+| Flag                 | Environment variable        | Default    | Description                                                                |
+| -------------------- | --------------------------- | ---------- | -------------------------------------------------------------------------- |
+| `--listen-address`   | `OVERDUE__LISTEN_ADDRESS`   | `:8080`    | HTTP server listen address.                                                |
+| `--route-prefix`     | `OVERDUE__ROUTE_PREFIX`     | empty      | Path prefix to mount the service under.                                    |
+| `--public-url`       | `OVERDUE__PUBLIC_URL`       | empty      | Externally reachable base URL used in notification templates.              |
+| `--name`             | `OVERDUE__NAME`             | `default`  | Name of the check-in monitor used in notifications.                        |
+| `--path`             | `OVERDUE__PATH`             | `/checkin` | Route used to receive check-ins.                                           |
+| `--expected-every`   | `OVERDUE__EXPECTED_EVERY`   | required   | Maximum time between check-ins.                                            |
+| `--alerting-delay`   | `OVERDUE__ALERTING_DELAY`   | required   | Extra time after the expected deadline before notifications fire.          |
+| `--start-active`     | `OVERDUE__START_ACTIVE`     | `false`    | Activate the monitor at startup instead of waiting for the first check-in. |
+| `--response-details` | `OVERDUE__RESPONSE_DETAILS` | `false`    | Return detailed timing fields from check-in responses by default.          |
+| `--auth-token`       | `OVERDUE__AUTH_TOKEN`       | empty      | Optional bearer token required for check-in and status requests.           |
+| `--debug`            | `OVERDUE__DEBUG`            | `false`    | Enable debug logging.                                                      |
+| `--log-format`       | `OVERDUE__LOG_FORMAT`       | `json`     | Log format: `json` or `text`.                                              |
 
 ## Timing
 
@@ -219,5 +219,3 @@ Use it through the environment when possible:
 ```sh
 export OVERDUE__AUTH_TOKEN="$(openssl rand -hex 32)"
 ```
-
-

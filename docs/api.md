@@ -2,12 +2,12 @@
 
 Overdue exposes a small HTTP API.
 
-| Method        | Path        | Description                | Auth required with `--auth-token` |
-| ------------- | ----------- | -------------------------- | --------------------------------- |
+| Method        | Path       | Description                | Auth required with `--auth-token` |
+| ------------- | ---------- | -------------------------- | --------------------------------- |
 | `GET`, `POST` | `/checkin` | Records a check-in.        | yes                               |
-| `GET`         | `/status`   | Returns monitor state.     | yes                               |
-| `GET`         | `/version`  | Returns build information. | no                                |
-| `GET`, `POST` | `/healthz`  | Returns `ok`.              | no                                |
+| `GET`         | `/status`  | Returns monitor state.     | yes                               |
+| `GET`         | `/version` | Returns build information. | no                                |
+| `GET`, `POST` | `/healthz` | Returns `ok`.              | no                                |
 
 The check-in endpoint path is configurable with `--path`.
 
@@ -234,7 +234,3 @@ This becomes:
 ```text
 /overdue
 ```
-
-
-
-

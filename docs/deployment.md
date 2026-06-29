@@ -97,5 +97,3 @@ The top-level directory command applies the core manifests only. Apply the optio
 Expose the service through your ingress or gateway as usual.
 
 If Overdue is mounted below a path prefix, set `OVERDUE__ROUTE_PREFIX` and make sure your ingress forwards the same prefix.
-
-

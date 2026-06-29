@@ -109,8 +109,6 @@ If no notification targets are configured, Overdue still runs and records status
 | `--webhook.<name>.log-response`        | `OVERDUE__WEBHOOK_<NAME>_LOG_RESPONSE`        | `summary`    | Webhook response logging: `summary`, `body`, `full`, or `none`. |
 | `--webhook.<name>.response-body-limit` | `OVERDUE__WEBHOOK_<NAME>_RESPONSE_BODY_LIMIT` | `4096`       | Maximum response body bytes to read for logs and errors.        |
 
-`--webhook.<name>.skip-insecure` remains available as a deprecated alias for `--webhook.<name>.tls-skip-verify`.
-
 ### Email flags
 
 | Flag pattern                          | Environment variable pattern                 | Default      | Description                                   |
@@ -127,8 +125,6 @@ If no notification targets are configured, Overdue still runs and records status
 | `--email.<name>.headers`              | `OVERDUE__EMAIL_<NAME>_HEADERS`              | empty        | Email headers in `KEY=VALUE` format.          |
 | `--email.<name>.custom-data`          | `OVERDUE__EMAIL_<NAME>_CUSTOM_DATA`          | empty        | Custom template data in `KEY=VALUE` format.   |
 | `--email.<name>.template`             | `OVERDUE__EMAIL_<NAME>_TEMPLATE`             | required     | Body template path or `builtin:<name>`.       |
-
-`--email.<name>.smtp-skip-insecure` remains available as a deprecated alias for `--email.<name>.smtp-tls-skip-verify`.
 
 ## Webhook examples
 
