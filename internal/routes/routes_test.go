@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"net/http"
@@ -203,10 +204,18 @@ func testRouter(checkInPath, routePrefix string, allowGETCheckIn bool, authToken
 	checkInMonitor := monitor.New("default", time.Minute, time.Second, logger)
 	registry := metrics.NewRegistry()
 	registry.SetMonitorSnapshot(checkInMonitor.CheckInName(), checkInMonitor.Snapshot())
-	svc := service.NewCheckIn(checkInMonitor, registry)
+	svc := service.NewCheckIn(&testCheckInMonitor{Monitor: checkInMonitor}, registry)
 	api := handler.NewAPI(authToken, svc, registry, false, "dev", "none", logger)
 
 	return NewRouter(checkInPath, routePrefix, allowGETCheckIn, api)
+}
+
+type testCheckInMonitor struct {
+	*monitor.Monitor
+}
+
+func (m *testCheckInMonitor) RecordCheckInContext(_ context.Context, at time.Time) monitor.RecordResult {
+	return m.Monitor.RecordCheckIn(at)
 }
 
 // testLogger returns a discard logger.

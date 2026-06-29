@@ -10,15 +10,8 @@ import (
 // CheckInMonitor exposes the check-in monitor behavior used by the check-in service.
 type CheckInMonitor interface {
 	CheckInName() string
-	RecordCheckIn(at time.Time) monitor.RecordResult
-	Snapshot() monitor.Snapshot
-}
-
-// contextCheckInMonitor is implemented by monitor wrappers that can use a
-// request context while recording a check-in, for example to enqueue resolved
-// notifications with the same context.
-type contextCheckInMonitor interface {
 	RecordCheckInContext(ctx context.Context, at time.Time) monitor.RecordResult
+	Snapshot() monitor.Snapshot
 }
 
 // MetricsRecorder records check-in service metrics.
@@ -67,7 +60,7 @@ func (s *CheckIn) CheckInName() string {
 
 // RecordCheckIn records a check-in and returns its new check-in monitor state.
 func (s *CheckIn) RecordCheckIn(ctx context.Context, at time.Time) RecordCheckInResult {
-	record := s.recordCheckIn(ctx, at)
+	record := s.checkInMonitor.RecordCheckInContext(ctx, at)
 	checkInName := s.checkInMonitor.CheckInName()
 
 	result := RecordCheckInResult{
@@ -78,15 +71,6 @@ func (s *CheckIn) RecordCheckIn(ctx context.Context, at time.Time) RecordCheckIn
 	s.metrics.IncCheckInReceived(result.CheckInName)
 
 	return result
-}
-
-// recordCheckIn records the check-in and uses the request context when the
-// configured monitor wrapper supports it.
-func (s *CheckIn) recordCheckIn(ctx context.Context, at time.Time) monitor.RecordResult {
-	if ctxMonitor, ok := s.checkInMonitor.(contextCheckInMonitor); ok {
-		return ctxMonitor.RecordCheckInContext(ctx, at)
-	}
-	return s.checkInMonitor.RecordCheckIn(at)
 }
 
 // Snapshot returns the current check-in monitor snapshot.

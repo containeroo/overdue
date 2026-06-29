@@ -39,7 +39,7 @@ func TestNewAPI(t *testing.T) {
 		t.Parallel()
 
 		checkInMonitor := monitor.New("default", time.Minute, time.Second, testLogger())
-		svc := service.NewCheckIn(checkInMonitor, metrics.NewRegistry())
+		svc := service.NewCheckIn(&testCheckInMonitor{Monitor: checkInMonitor}, metrics.NewRegistry())
 
 		require.PanicsWithValue(t, "metrics registry must not be nil", func() {
 			NewAPI("", svc, nil, false, "dev", "none", testLogger())
@@ -51,7 +51,7 @@ func TestNewAPI(t *testing.T) {
 
 		checkInMonitor := monitor.New("default", time.Minute, time.Second, testLogger())
 		registry := metrics.NewRegistry()
-		svc := service.NewCheckIn(checkInMonitor, registry)
+		svc := service.NewCheckIn(&testCheckInMonitor{Monitor: checkInMonitor}, registry)
 
 		require.PanicsWithValue(t, "api logger must not be nil", func() {
 			NewAPI("", svc, registry, false, "dev", "none", nil)

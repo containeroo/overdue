@@ -20,7 +20,7 @@ func TestNewCheckIn(t *testing.T) {
 	t.Run("creates service", func(t *testing.T) {
 		t.Parallel()
 
-		checkInMonitor := monitor.New("default", time.Minute, time.Second, testLogger())
+		checkInMonitor := newRecordingCheckInMonitor("default")
 
 		service := NewCheckIn(checkInMonitor, metrics.NewRegistry())
 
@@ -38,7 +38,7 @@ func TestNewCheckIn(t *testing.T) {
 	t.Run("panics without metrics registry", func(t *testing.T) {
 		t.Parallel()
 
-		checkInMonitor := monitor.New("default", time.Minute, time.Second, testLogger())
+		checkInMonitor := newRecordingCheckInMonitor("default")
 
 		require.PanicsWithValue(t, "check-in metrics registry must not be nil", func() {
 			NewCheckIn(checkInMonitor, nil)
@@ -51,7 +51,7 @@ func TestService_CheckInName(t *testing.T) {
 	t.Run("returns configured check-in name", func(t *testing.T) {
 		t.Parallel()
 
-		checkInMonitor := monitor.New("prometheus", time.Minute, time.Second, testLogger())
+		checkInMonitor := newRecordingCheckInMonitor("prometheus")
 		service := NewCheckIn(checkInMonitor, metrics.NewRegistry())
 
 		assert.Equal(t, "prometheus", service.CheckInName())
@@ -64,7 +64,7 @@ func TestService_RecordCheckIn(t *testing.T) {
 		t.Parallel()
 
 		now := time.Date(2026, 6, 19, 8, 0, 0, 0, time.UTC)
-		checkInMonitor := monitor.New("prometheus", time.Minute, time.Second, testLogger())
+		checkInMonitor := newRecordingCheckInMonitor("prometheus")
 		service := NewCheckIn(checkInMonitor, metrics.NewRegistry())
 
 		result := service.RecordCheckIn(context.Background(), now)
@@ -74,13 +74,11 @@ func TestService_RecordCheckIn(t *testing.T) {
 		assert.Equal(t, monitor.PhaseScheduled, result.PreviousPhase)
 	})
 
-	t.Run("passes context to context-aware monitor", func(t *testing.T) {
+	t.Run("passes context to monitor", func(t *testing.T) {
 		t.Parallel()
 
 		now := time.Date(2026, 6, 19, 8, 0, 0, 0, time.UTC)
-		checkInMonitor := &recordingContextCheckInMonitor{
-			Monitor: monitor.New("prometheus", time.Minute, time.Second, testLogger()),
-		}
+		checkInMonitor := newRecordingCheckInMonitor("prometheus")
 		service := NewCheckIn(checkInMonitor, metrics.NewRegistry())
 		ctx := context.WithValue(context.Background(), contextValueKey("request"), "check-in-request")
 
@@ -94,7 +92,7 @@ func TestService_RecordCheckIn(t *testing.T) {
 
 		now := time.Date(2026, 6, 19, 8, 0, 0, 0, time.UTC)
 		registry := metrics.NewRegistry()
-		checkInMonitor := monitor.New("prometheus", time.Minute, time.Second, testLogger())
+		checkInMonitor := newRecordingCheckInMonitor("prometheus")
 		service := NewCheckIn(checkInMonitor, registry)
 
 		service.RecordCheckIn(context.Background(), now)
@@ -110,7 +108,7 @@ func TestService_Snapshot(t *testing.T) {
 		t.Parallel()
 
 		now := time.Date(2026, 6, 19, 8, 0, 0, 0, time.UTC)
-		checkInMonitor := monitor.New("prometheus", time.Minute, time.Second, testLogger())
+		checkInMonitor := newRecordingCheckInMonitor("prometheus")
 		service := NewCheckIn(checkInMonitor, metrics.NewRegistry())
 		checkInMonitor.RecordCheckIn(now)
 
@@ -124,12 +122,18 @@ func TestService_Snapshot(t *testing.T) {
 
 type contextValueKey string
 
-type recordingContextCheckInMonitor struct {
+type recordingCheckInMonitor struct {
 	*monitor.Monitor
 	contextValue any
 }
 
-func (m *recordingContextCheckInMonitor) RecordCheckInContext(ctx context.Context, at time.Time) monitor.RecordResult {
+func newRecordingCheckInMonitor(name string) *recordingCheckInMonitor {
+	return &recordingCheckInMonitor{
+		Monitor: monitor.New(name, time.Minute, time.Second, testLogger()),
+	}
+}
+
+func (m *recordingCheckInMonitor) RecordCheckInContext(ctx context.Context, at time.Time) monitor.RecordResult {
 	m.contextValue = ctx.Value(contextValueKey("request"))
 	return m.Monitor.RecordCheckIn(at)
 }

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -32,9 +33,17 @@ func testAPIWithOptions(
 ) (*API, *monitor.Monitor) {
 	checkInMonitor := monitor.New("default", testExpectedEvery, testAlertingDelay, logger)
 	registry := metrics.NewRegistry()
-	service := service.NewCheckIn(checkInMonitor, registry)
+	service := service.NewCheckIn(&testCheckInMonitor{Monitor: checkInMonitor}, registry)
 	api := NewAPI(authToken, service, registry, responseDetails, version, commit, logger)
 	return api, checkInMonitor
+}
+
+type testCheckInMonitor struct {
+	*monitor.Monitor
+}
+
+func (m *testCheckInMonitor) RecordCheckInContext(_ context.Context, at time.Time) monitor.RecordResult {
+	return m.Monitor.RecordCheckIn(at)
 }
 
 // testLogger returns a discard logger.
