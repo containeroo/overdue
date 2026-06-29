@@ -12,6 +12,8 @@ func ParseArgs(args []string, version string) (config.Config, error) {
 	tf := tinyflags.NewFlagSet("overdue", tinyflags.ContinueOnError)
 	tf.Version(version)
 	tf.EnvPrefix("OVERDUE_")
+	tf.HideEnvs()
+	tf.Note("\nFlags can also be set through environment variables with the OVERDUE__ prefix. For example, --path becomes OVERDUE__PATH and --webhook.ops.url becomes OVERDUE__WEBHOOK_OPS_URL.")
 
 	registerAppFlags(tf, &cfg)
 	registerWebhookFlags(tf)
