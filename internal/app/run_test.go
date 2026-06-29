@@ -165,22 +165,39 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("runs start active until context cancellation", func(t *testing.T) {
-		t.Parallel()
+		// Do not call t.Parallel here. This test starts a real HTTP server.
+		addr := freeTCPAddr(t)
 
 		var stdout bytes.Buffer
 		var stderr bytes.Buffer
 
 		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		done := make(chan error, 1)
+		go func() {
+			done <- Run(ctx, "dev", "none", []string{
+				"--listen-address=" + addr,
+				"--expected-every=10s",
+				"--alerting-delay=2s",
+				"--start-active",
+			}, &stdout, &stderr, testTemplateFS())
+		}()
+
+		client := &http.Client{Timeout: time.Second}
+		baseURL := "http://" + addr
+
+		waitForHTTPStatus(t, client, baseURL+"/healthz", http.MethodGet, http.StatusOK)
+
 		cancel()
 
-		err := Run(ctx, "dev", "none", []string{
-			"--listen-address=:0",
-			"--expected-every=10s",
-			"--alerting-delay=2s",
-			"--start-active",
-		}, &stdout, &stderr, testTemplateFS())
+		select {
+		case err := <-done:
+			require.NoError(t, err)
+		case <-time.After(2 * time.Second):
+			require.Fail(t, "Run did not stop after context cancellation")
+		}
 
-		require.NoError(t, err)
 		assert.Contains(t, stdout.String(), "check-in monitor activated at startup")
 		assert.Empty(t, stderr.String())
 	})

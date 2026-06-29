@@ -104,6 +104,7 @@ func Run(
 	)
 
 	reg := metrics.NewRegistry()
+
 	sched := scheduler.New(mon, notifyManager, notificationRouter, reg, logger.With("component", "scheduler"))
 	if cfg.CheckIn.StartActive {
 		activatedAt := time.Now()
