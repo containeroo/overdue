@@ -137,7 +137,7 @@ This becomes:
 
 ## Public URL
 
-Use `--public-url` to expose externally reachable links to notification templates. The value may include an ingress or reverse-proxy path prefix. It is not derived from `--listen-address`, because listen addresses such as `:8080` or `0.0.0.0:8080` are usually not public URLs.
+Use `--public-url` to expose externally reachable links to notification templates. The value may include an ingress or reverse-proxy path prefix. When `--route-prefix` is set and `--public-url` does not already end with that prefix, notification links include the route prefix. It is not derived from `--listen-address`, because listen addresses such as `:8080` or `0.0.0.0:8080` are usually not public URLs.
 
 ```sh
 overdue \

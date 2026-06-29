@@ -24,7 +24,7 @@ func ParseArgs(args []string, version string) (config.Config, error) {
 		return config.Config{}, err
 	}
 
-	notifications, err := notificationsFromDynamicGroups(version, cfg.SiteRoot, cfg.CheckIn.Path, tf.DynamicGroups())
+	notifications, err := notificationsFromDynamicGroups(version, cfg.SiteRoot, cfg.RoutePrefix, cfg.CheckIn.Path, tf.DynamicGroups())
 	if err != nil {
 		return config.Config{}, err
 	}

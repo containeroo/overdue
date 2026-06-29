@@ -14,9 +14,9 @@ import (
 const defaultTitleTemplate = `{{ if .Resolved }}[RESOLVED] Event Notification{{ else }}[OVERDUE] Event Notification{{ end }}`
 
 // notificationsFromDynamicGroups converts parsed dynamic CLI groups into notification configuration.
-func notificationsFromDynamicGroups(version, siteRoot, checkInPath string, groups []*tinyflags.DynamicGroup) (config.Notifications, error) {
+func notificationsFromDynamicGroups(version, siteRoot, routePrefix, checkInPath string, groups []*tinyflags.DynamicGroup) (config.Notifications, error) {
 	cfg := config.Notifications{
-		App: config.NewAppData(version, siteRoot, checkInPath),
+		App: config.NewAppData(version, siteRoot, routePrefix, checkInPath),
 	}
 
 	for _, group := range groups {

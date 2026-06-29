@@ -68,7 +68,7 @@ Notification templates receive a check-in lifecycle event.
 | `.App`            | struct            | Application metadata and links. URL fields are empty when no public URL is configured.        |
 | `.CustomData`     | map[string]string | Target-local custom data from `--webhook.<name>.custom-data` or `--email.<name>.custom-data`. |
 
-`.App` contains `.App.Version`, `.App.PublicURL`, `.App.CheckInURL`, and `.App.StatusURL`. `--public-url` is the externally reachable base URL and may include a path prefix. `.App.CheckInURL` appends the configured path, and `.App.StatusURL` appends `/status`.
+`.App` contains `.App.Version`, `.App.PublicURL`, `.App.CheckInURL`, and `.App.StatusURL`. `--public-url` is the externally reachable base URL and may include a path prefix. If `--route-prefix` is configured and `--public-url` does not already end with that prefix, `.App.CheckInURL` and `.App.StatusURL` include the route prefix.
 
 Custom data keys that are valid Go template identifiers can be read with dot notation, such as `.CustomData.channel`. Other keys can be read with `index`, such as `{{ index .CustomData "team-name" }}`.
 

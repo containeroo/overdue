@@ -68,6 +68,22 @@ func TestParseArgs(t *testing.T) {
 		assert.Equal(t, "https://overdue.example.test/overdue/status", cfg.Notifications.App.StatusURL)
 	})
 
+	t.Run("builds app template data with route prefix", func(t *testing.T) {
+		t.Parallel()
+
+		cfg, err := ParseArgs([]string{
+			"--expected-every=10s",
+			"--alerting-delay=2s",
+			"--public-url=https://overdue.example.test",
+			"--route-prefix=/overdue",
+		}, "v0.0.7")
+
+		require.NoError(t, err)
+		assert.Equal(t, "https://overdue.example.test/overdue", cfg.Notifications.App.SiteRoot)
+		assert.Equal(t, "https://overdue.example.test/overdue/checkin", cfg.Notifications.App.CheckInURL)
+		assert.Equal(t, "https://overdue.example.test/overdue/status", cfg.Notifications.App.StatusURL)
+	})
+
 	t.Run("rejects invalid public url", func(t *testing.T) {
 		t.Parallel()
 

@@ -28,7 +28,7 @@ func TestNotificationsFromDynamicGroups(t *testing.T) {
 			"--email.ops.template=email.tmpl",
 		})
 
-		cfg, err := notificationsFromDynamicGroups("v0.0.7", "https://overdue.example.test/overdue", "/checkin", fs.DynamicGroups())
+		cfg, err := notificationsFromDynamicGroups("v0.0.7", "https://overdue.example.test/overdue", "/overdue", "/checkin", fs.DynamicGroups())
 
 		require.NoError(t, err)
 		assert.Equal(t, "v0.0.7", cfg.App.Version)
@@ -48,7 +48,7 @@ func TestNotificationsFromDynamicGroups(t *testing.T) {
 		fs := notificationTestFlagSet(t, nil)
 		fs.DynamicGroup("pagerduty").String("routing-key", "", "routing key")
 
-		cfg, err := notificationsFromDynamicGroups("dev", "", "/checkin", fs.DynamicGroups())
+		cfg, err := notificationsFromDynamicGroups("dev", "", "", "/checkin", fs.DynamicGroups())
 
 		require.NoError(t, err)
 		assert.Empty(t, cfg.Webhooks)
@@ -62,7 +62,7 @@ func TestNotificationsFromDynamicGroups(t *testing.T) {
 		fs.DynamicGroup("pagerduty").String("routing-key", "", "routing key")
 		require.NoError(t, fs.Parse([]string{"--pagerduty.ops.routing-key=secret"}))
 
-		_, err := notificationsFromDynamicGroups("dev", "", "/checkin", fs.DynamicGroups())
+		_, err := notificationsFromDynamicGroups("dev", "", "", "/checkin", fs.DynamicGroups())
 
 		require.Error(t, err)
 		assert.EqualError(t, err, `unsupported notification group "pagerduty"`)
