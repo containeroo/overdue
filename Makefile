@@ -91,10 +91,11 @@ run-test: ## Run a local instance with example webhook and email settings.
 		--expected-every=5s \
 		--alerting-delay=3s \
 		--name=prometheus \
+		--webhook.ops.log-response=full \
 		--webhook.ops.url=https://slack.com/api/chat.postMessage \
 		--webhook.ops.headers="Authorization=Bearer $${SLACK_TOKEN}" \
 		--webhook.ops.template=builtin:slack-chat-post-message \
-		--webhook.ops.subject-template='{{ if .Resolved }}[RESOLVED]{{ else }}[OVERDUE]{{ end }} Check-in {{ .CheckInName }}' \
+		--webhook.ops.title-template='{{ if .Resolved }}[RESOLVED]{{ else }}[OVERDUE]{{ end }} Check-in {{ .CheckInName }}' \
 		--webhook.ops.custom-data=channel="$${SLACK_CHANNEL:-alertmanager}" \
 		--webhook.ops.send-resolved \
 		--email.ops.smtp-host=smtp.gmail.com \
@@ -104,7 +105,7 @@ run-test: ## Run a local instance with example webhook and email settings.
 		--email.ops.from="$${EMAIL_FROM}" \
 		--email.ops.to="$${EMAIL_TO}" \
 		--email.ops.template=builtin:email-html \
-		--email.ops.subject-template='{{ if .Resolved }}[RESOLVED]{{ else }}[OVERDUE]{{ end }} Check-in {{ .CheckInName }}' \
+		--email.ops.title-template='{{ if .Resolved }}[RESOLVED]{{ else }}[OVERDUE]{{ end }} Check-in {{ .CheckInName }}' \
 		--email.ops.send-resolved
 
 ##@ Endpoint smoke tests
