@@ -16,6 +16,13 @@ import (
 	"github.com/containeroo/notifykit/templates"
 )
 
+// templateOptions returns Overdue's template policy for all notification templates.
+func templateOptions() []templates.Option {
+	return []templates.Option{
+		templates.WithDefaultFuncs(),
+	}
+}
+
 // ReceiversFromConfig builds notifykit receivers and routing policy from Overdue notification config.
 func ReceiversFromConfig(templateFS fs.FS, cfg config.Notifications, logger *slog.Logger) (kit.Receivers, *Router, error) {
 	receivers := make(kit.Receivers, len(cfg.Webhooks)+len(cfg.Emails))
@@ -76,12 +83,14 @@ func webhookReceiver(
 	cfg config.WebhookConfig,
 	logger *slog.Logger,
 ) (*kit.Receiver, error) {
-	tmpl, err := templates.LoadSource(templateFS, cfg.Template)
+	opts := templateOptions()
+
+	tmpl, err := templates.LoadSource(templateFS, cfg.Template, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("load webhook %q template: %w", cfg.Name, err)
 	}
 
-	titleTmpl, err := templates.ParseStringTemplate("webhook-title", cfg.TitleTemplate)
+	titleTmpl, err := templates.ParseStringTemplate("webhook-title", cfg.TitleTemplate, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("parse webhook %q title template: %w", cfg.Name, err)
 	}
@@ -107,16 +116,16 @@ func webhookReceiver(
 		webhook.WithLogger(logger),
 	)
 
-	vars := varsFromConfig(app, cfg.CustomData)
-	if err := validateWebhookTarget(target, cfg.Name, vars); err != nil {
+	customData := varsFromConfig(app, cfg.CustomData)
+	if err := validateWebhookTarget(target, cfg.Name, customData); err != nil {
 		return nil, err
 	}
 
 	return &kit.Receiver{
-		ID:      webhookReceiverID(cfg.Name),
-		Name:    cfg.Name,
-		Targets: []kit.Target{target},
-		Vars:    vars,
+		ID:         webhookReceiverID(cfg.Name),
+		Name:       cfg.Name,
+		Targets:    []kit.Target{target},
+		CustomData: customData,
 	}, nil
 }
 
@@ -126,12 +135,14 @@ func emailReceiver(
 	app config.AppData,
 	cfg config.EmailConfig,
 ) (*kit.Receiver, error) {
-	tmpl, err := templates.LoadSource(templateFS, cfg.Template)
+	opts := templateOptions()
+
+	tmpl, err := templates.LoadSource(templateFS, cfg.Template, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("load email %q template: %w", cfg.Name, err)
 	}
 
-	titleTmpl, err := templates.ParseStringTemplate("email-title", cfg.TitleTemplate)
+	titleTmpl, err := templates.ParseStringTemplate("email-title", cfg.TitleTemplate, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("parse email %q title template: %w", cfg.Name, err)
 	}
@@ -150,16 +161,16 @@ func emailReceiver(
 		SubjectTmpl:   titleTmpl,
 	})
 
-	vars := varsFromConfig(app, cfg.CustomData)
-	if err := validateEmailTarget(target, cfg.Name, vars); err != nil {
+	customData := varsFromConfig(app, cfg.CustomData)
+	if err := validateEmailTarget(target, cfg.Name, customData); err != nil {
 		return nil, err
 	}
 
 	return &kit.Receiver{
-		ID:      emailReceiverID(cfg.Name),
-		Name:    cfg.Name,
-		Targets: []kit.Target{target},
-		Vars:    vars,
+		ID:         emailReceiverID(cfg.Name),
+		Name:       cfg.Name,
+		Targets:    []kit.Target{target},
+		CustomData: customData,
 	}, nil
 }
 
@@ -193,14 +204,14 @@ func webhookLogResponse(value config.WebhookLogResponse) webhook.LogResponse {
 func validateWebhookTarget(
 	target *webhook.Target,
 	receiverName string,
-	vars map[string]any,
+	customData map[string]any,
 ) error {
 	alertingEvent, resolvedEvent := validationEvents("default")
 
 	if err := target.Validate(kit.Payload{
 		Notification: NewEvent(alertingEvent, nil),
 		Receiver:     receiverName,
-		Vars:         vars,
+		CustomData:   customData,
 	}); err != nil {
 		return fmt.Errorf("validate webhook %q alerting template: %w", receiverName, err)
 	}
@@ -208,7 +219,7 @@ func validateWebhookTarget(
 	if err := target.Validate(kit.Payload{
 		Notification: NewEvent(resolvedEvent, nil),
 		Receiver:     receiverName,
-		Vars:         vars,
+		CustomData:   customData,
 	}); err != nil {
 		return fmt.Errorf("validate webhook %q resolved template: %w", receiverName, err)
 	}
@@ -217,13 +228,13 @@ func validateWebhookTarget(
 }
 
 // validateEmailTarget renders sample alerting and resolved email payloads.
-func validateEmailTarget(target *email.Target, receiverName string, vars map[string]any) error {
+func validateEmailTarget(target *email.Target, receiverName string, customData map[string]any) error {
 	alertingEvent, resolvedEvent := validationEvents("default")
 
 	if err := target.Validate(kit.Payload{
 		Notification: NewEvent(alertingEvent, nil),
 		Receiver:     receiverName,
-		Vars:         vars,
+		CustomData:   customData,
 	}); err != nil {
 		return fmt.Errorf("validate email %q alerting template: %w", receiverName, err)
 	}
@@ -231,7 +242,7 @@ func validateEmailTarget(target *email.Target, receiverName string, vars map[str
 	if err := target.Validate(kit.Payload{
 		Notification: NewEvent(resolvedEvent, nil),
 		Receiver:     receiverName,
-		Vars:         vars,
+		CustomData:   customData,
 	}); err != nil {
 		return fmt.Errorf("validate email %q resolved template: %w", receiverName, err)
 	}
