@@ -212,28 +212,27 @@ Templates use strict missing-key behavior. Missing fields fail during startup va
 
 Templates receive the following data:
 
-| Field             | Type                | Description                                                  |
-| ----------------- | ------------------- | ------------------------------------------------------------ |
-| `.IncidentID`     | `string`            | Stable ID for one overdue incident.                          |
-| `.NotificationID` | `string`            | Stable ID for this concrete notification.                    |
-| `.CheckInName`    | `string`            | Configured check-in name.                                    |
-| `.LastCheckIn`    | `time.Time`         | Last received check-in time.                                 |
-| `.ExpectedBy`     | `time.Time`         | Time when the next check-in was expected.                    |
-| `.OverdueSince`   | `time.Time`         | Time when the check-in became overdue.                       |
-| `.AlertingAt`     | `time.Time`         | Time when alerting starts.                                   |
-| `.Now`            | `time.Time`         | Time the notification event was created.                     |
-| `.Phase`          | `string`            | Monitor phase.                                               |
-| `.Status`         | `string`            | Notification status: `alerting` or `resolved`.               |
-| `.Resolved`       | `bool`              | Whether this is a resolved notification.                     |
-| `.Title`          | `string`            | Rendered notification title.                                 |
-| `.Text`           | `string`            | Default plain text summary.                                  |
-| `.Receiver`       | `string`            | Receiver name.                                               |
-| `.Vars`           | `map[string]any`    | Public receiver variables. Custom data is also exposed here. |
-| `.CustomData`     | `map[string]string` | Custom data configured with `custom-data`.                   |
-| `.App.Version`    | `string`            | Overdue version.                                             |
-| `.App.SiteRoot`   | `string`            | Public base URL from `--public-url`.                         |
-| `.App.CheckInURL` | `string`            | Public check-in URL when `--public-url` is configured.       |
-| `.App.StatusURL`  | `string`            | Public status URL when `--public-url` is configured.         |
+| Field             | Type                | Description                                            |
+| ----------------- | ------------------- | ------------------------------------------------------ |
+| `.IncidentID`     | `string`            | Stable ID for one overdue incident.                    |
+| `.NotificationID` | `string`            | Stable ID for this concrete notification.              |
+| `.CheckInName`    | `string`            | Configured check-in name.                              |
+| `.LastCheckIn`    | `time.Time`         | Last received check-in time.                           |
+| `.ExpectedBy`     | `time.Time`         | Time when the next check-in was expected.              |
+| `.OverdueSince`   | `time.Time`         | Time when the check-in became overdue.                 |
+| `.AlertingAt`     | `time.Time`         | Time when alerting starts.                             |
+| `.Now`            | `time.Time`         | Time the notification event was created.               |
+| `.Phase`          | `string`            | Monitor phase.                                         |
+| `.Status`         | `string`            | Notification status: `alerting` or `resolved`.         |
+| `.Resolved`       | `bool`              | Whether this is a resolved notification.               |
+| `.Title`          | `string`            | Rendered notification title.                           |
+| `.Text`           | `string`            | Default plain text summary.                            |
+| `.Receiver`       | `string`            | Receiver name.                                         |
+| `.CustomData`     | `map[string]string` | Custom data configured with `custom-data`.             |
+| `.App.Version`    | `string`            | Overdue version.                                       |
+| `.App.SiteRoot`   | `string`            | Public base URL from `--public-url`.                   |
+| `.App.CheckInURL` | `string`            | Public check-in URL when `--public-url` is configured. |
+| `.App.StatusURL`  | `string`            | Public status URL when `--public-url` is configured.   |
 
 ### Custom data
 
@@ -243,13 +242,12 @@ Custom data is configured with `KEY=VALUE` values:
 -e OVERDUE__WEBHOOK_OPS_CUSTOM_DATA=channel=#alertmanager
 ```
 
-It is available in templates as both `.CustomData` and `.Vars`.
+It is available in templates as `.CustomData`.
 
 Recommended access:
 
 ```gotemplate
 {{ index .CustomData "channel" }}
-{{ index .Vars "channel" }}
 ```
 
 Example with a default:

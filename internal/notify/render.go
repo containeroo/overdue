@@ -34,7 +34,6 @@ type Data struct {
 	Text           string
 	App            AppData
 	Receiver       string
-	Vars           map[string]any
 	CustomData     map[string]string
 }
 
@@ -56,7 +55,6 @@ func NewData(event monitor.Event, receiver string, vars map[string]any, title st
 		Text:           text(event),
 		App:            appData(vars),
 		Receiver:       receiver,
-		Vars:           publicVars(vars),
 		CustomData:     customData(vars),
 	}
 }
@@ -69,19 +67,12 @@ func text(event monitor.Event) string {
 	return fmt.Sprintf(`Check-in %q is overdue:`, event.CheckInName)
 }
 
-// varsFromConfig converts app and custom data into notifykit receiver variables.
+// varsFromConfig converts app data and custom data into notifykit receiver variables.
 func varsFromConfig(app AppData, custom map[string]string) map[string]any {
 	vars := map[string]any{appVar: app}
-	if len(custom) == 0 {
-		return vars
+	if len(custom) > 0 {
+		vars[customDataVar] = cloneStringMap(custom)
 	}
-
-	customCopy := make(map[string]string, len(custom))
-	for key, value := range custom {
-		customCopy[key] = value
-		vars[key] = value
-	}
-	vars[customDataVar] = customCopy
 	return vars
 }
 
@@ -99,39 +90,8 @@ func customData(vars map[string]any) map[string]string {
 	if len(vars) == 0 {
 		return nil
 	}
-	if custom, ok := vars[customDataVar].(map[string]string); ok {
-		return cloneStringMap(custom)
-	}
-
-	custom := make(map[string]string, len(vars))
-	for key, value := range vars {
-		text, ok := value.(string)
-		if ok {
-			custom[key] = text
-		}
-	}
-	if len(custom) == 0 {
-		return nil
-	}
-	return custom
-}
-
-// publicVars returns receiver variables intended for templates.
-func publicVars(vars map[string]any) map[string]any {
-	if len(vars) == 0 {
-		return nil
-	}
-	out := make(map[string]any, len(vars))
-	for key, value := range vars {
-		if key == appVar || key == customDataVar {
-			continue
-		}
-		out[key] = value
-	}
-	if len(out) == 0 {
-		return nil
-	}
-	return out
+	custom, _ := vars[customDataVar].(map[string]string)
+	return cloneStringMap(custom)
 }
 
 // cloneStringMap returns a defensive copy of values.
@@ -139,7 +99,5 @@ func cloneStringMap(values map[string]string) map[string]string {
 	if len(values) == 0 {
 		return nil
 	}
-	out := make(map[string]string, len(values))
-	maps.Copy(out, values)
-	return out
+	return maps.Clone(values)
 }

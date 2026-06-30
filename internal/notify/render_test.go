@@ -30,7 +30,6 @@ func TestNewData(t *testing.T) {
 		assert.Equal(t, "api", data.CheckInName)
 		assert.Equal(t, "title", data.Title)
 		assert.Equal(t, "ops", data.Receiver)
-		assert.Equal(t, map[string]any{"channel": "alerts"}, data.Vars)
 		assert.Equal(t, map[string]string{"channel": "alerts"}, data.CustomData)
 		assert.Equal(t, "dev", data.App.Version)
 	})
@@ -63,14 +62,23 @@ func TestVarsFromConfig(t *testing.T) {
 		assert.Equal(t, map[string]any{appVar: AppData{Version: "dev"}}, varsFromConfig(AppData{Version: "dev"}, nil))
 	})
 
-	t.Run("adds custom data as direct vars and CustomData", func(t *testing.T) {
+	t.Run("adds custom data container", func(t *testing.T) {
 		t.Parallel()
 
 		assert.Equal(t, map[string]any{
 			appVar:        AppData{Version: "dev"},
 			customDataVar: map[string]string{"channel": "alerts"},
-			"channel":     "alerts",
 		}, varsFromConfig(AppData{Version: "dev"}, map[string]string{"channel": "alerts"}))
+	})
+
+	t.Run("copies custom data", func(t *testing.T) {
+		t.Parallel()
+
+		custom := map[string]string{"channel": "alerts"}
+		vars := varsFromConfig(AppData{Version: "dev"}, custom)
+		custom["channel"] = "changed"
+
+		assert.Equal(t, map[string]string{"channel": "alerts"}, vars[customDataVar])
 	})
 }
 
@@ -101,37 +109,26 @@ func TestCustomData(t *testing.T) {
 		assert.Nil(t, customData(nil))
 	})
 
-	t.Run("prefers configured CustomData map", func(t *testing.T) {
+	t.Run("returns configured CustomData map", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, map[string]string{"channel": "alerts"}, customData(map[string]any{customDataVar: map[string]string{"channel": "alerts"}, "ignored": 3}))
+		assert.Equal(t, map[string]string{"channel": "alerts"}, customData(map[string]any{customDataVar: map[string]string{"channel": "alerts"}}))
 	})
 
-	t.Run("falls back to string vars", func(t *testing.T) {
+	t.Run("ignores direct string vars", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, map[string]string{"channel": "alerts"}, customData(map[string]any{"channel": "alerts", "retries": 3}))
-	})
-}
-
-// TestPublicVars tests public receiver variable extraction.
-func TestPublicVars(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns nil without vars", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Nil(t, publicVars(nil))
+		assert.Nil(t, customData(map[string]any{"channel": "alerts"}))
 	})
 
-	t.Run("excludes app and custom data container", func(t *testing.T) {
+	t.Run("copies values", func(t *testing.T) {
 		t.Parallel()
 
-		vars := map[string]any{appVar: AppData{Version: "dev"}, customDataVar: map[string]string{"channel": "alerts"}, "channel": "alerts"}
-		got := publicVars(vars)
-		vars["channel"] = "changed"
+		values := map[string]string{"channel": "alerts"}
+		got := customData(map[string]any{customDataVar: values})
+		values["channel"] = "changed"
 
-		assert.Equal(t, map[string]any{"channel": "alerts"}, got)
+		assert.Equal(t, map[string]string{"channel": "alerts"}, got)
 	})
 }
 
