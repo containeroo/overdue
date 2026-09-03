@@ -7,7 +7,7 @@ require (
 	github.com/containeroo/httpprefix v0.0.2
 	github.com/containeroo/httputils v0.0.1
 	github.com/containeroo/notifykit v0.0.11
-	github.com/containeroo/tinyflags v0.0.79
+	github.com/containeroo/tinyflags v0.0.81
 	github.com/containeroo/uuidv7 v0.0.2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
