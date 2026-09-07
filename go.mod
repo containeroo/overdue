@@ -1,9 +1,9 @@
 module github.com/containeroo/overdue
 
-go 1.26
+go 1.27.0
 
 require (
-	github.com/containeroo/httpgrace v0.1.2
+	github.com/containeroo/httpgrace v0.2.0
 	github.com/containeroo/httpprefix v0.0.2
 	github.com/containeroo/httputils v0.0.1
 	github.com/containeroo/notifykit v0.0.11
