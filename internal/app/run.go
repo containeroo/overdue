@@ -8,7 +8,7 @@ import (
 	"io/fs"
 	"time"
 
-	"github.com/containeroo/httpgrace/server"
+	server "github.com/containeroo/httpkit/grace"
 	kit "github.com/containeroo/notifykit/notify"
 	"github.com/containeroo/overdue/internal/cli"
 	"github.com/containeroo/overdue/internal/handler"
