@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/containeroo/httpkit v0.0.1
-	github.com/containeroo/httpprefix v0.0.2
+	github.com/containeroo/httpprefix v0.2.0
 	github.com/containeroo/httputils v0.0.1
 	github.com/containeroo/notifykit v0.0.11
 	github.com/containeroo/tinyflags v0.0.79
